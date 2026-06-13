@@ -17,7 +17,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.21
         env:
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
-          CIBW_SKIP: "*-musllinux_i686 *_i686"
+          # skip 32-bit targets: numpy no longer ships 32-bit wheels so the build dep can't resolve
+          CIBW_SKIP: "*-musllinux_i686 *_i686 *-win32"
           # -march=native is not portable across machines; wheels use the
           # baseline ISA and the scalar fallbacks guarded by __AVX2__.
           CIBW_ENVIRONMENT: "FASTWINDOW_PORTABLE=1"
@@ -28,24 +29,8 @@ jobs:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
-  publish-pypi:
-    needs: build-wheels
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write   # trusted publisher (OIDC); PyPI project must be pre-configured
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
-
   build-r-package:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-r@v2
@@ -53,8 +38,24 @@ jobs:
         run: Rscript -e 'install.packages("Rcpp")'
       - name: Build source package
         run: R CMD build .
-      # CRAN submission is manual — this only prepares and attaches the tarball
-      - name: Attach tarball to the GitHub Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r-tarball
+          path: fastroll_*.tar.gz
+
+  release:
+    needs: [build-wheels, build-r-package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Attach wheels and R tarball to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: fastroll_*.tar.gz
+          files: |
+            artifacts/*.whl
+            artifacts/fastroll_*.tar.gz

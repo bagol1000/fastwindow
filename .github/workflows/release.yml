@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21
+        env:
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
+          CIBW_SKIP: "*-musllinux_i686 *_i686"
+          # -march=native is not portable across machines; wheels use the
+          # baseline ISA and the scalar fallbacks guarded by __AVX2__.
+          CIBW_ENVIRONMENT: "FASTWINDOW_PORTABLE=1"
+          CIBW_TEST_REQUIRES: "pytest numpy pandas scipy"
+          CIBW_TEST_COMMAND: "pytest {project}/tests -x -q"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  publish-pypi:
+    needs: build-wheels
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # trusted publisher (OIDC); PyPI project must be pre-configured
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  build-r-package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - name: Install Rcpp
+        run: Rscript -e 'install.packages("Rcpp")'
+      - name: Build source package
+        run: R CMD build .
+      # CRAN submission is manual — this only prepares and attaches the tarball
+      - name: Attach tarball to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: fastroll_*.tar.gz

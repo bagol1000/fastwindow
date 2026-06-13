@@ -1,0 +1,8 @@
+# Portable defaults only — R CMD check flags -O3/-march=native as
+# non-portable.  To build with native AVX2 optimisations, put
+#   CXXFLAGS += -O3 -march=native -ffast-math
+# in your ~/.R/Makevars before installing; the AVX2 paths are guarded by
+# __AVX2__ and fall back to scalar code otherwise.
+CXX_STD = CXX17
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)

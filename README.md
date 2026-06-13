@@ -32,8 +32,8 @@ rolling_mean(rnorm(1e6), window = 252)
 ## Install
 
 ```bash
-pip install fastwindow            # Python
-R CMD INSTALL fastroll_0.1.0.tar.gz   # R (CRAN submission pending)
+pip install fastwindow            # Python (not yet)
+R CMD INSTALL fastroll_0.1.0.tar.gz   # R (not yet)
 ```
 
 For maximum performance build from source on the target machine; the

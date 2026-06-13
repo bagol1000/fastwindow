@@ -1,7 +1,7 @@
 # fastwindow / fastroll
 
 [![PyPI version](https://img.shields.io/pypi/v/fastwindow.svg)](https://pypi.org/project/fastwindow/)
-[![CI](https://github.com/fastwindow/fastwindow/actions/workflows/ci.yml/badge.svg)](https://github.com/fastwindow/fastwindow/actions/workflows/ci.yml)
+[![CI](https://github.com/bagol1000/fastwindow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagol1000/fastwindow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 High-performance rolling window statistics with a shared C++17 core

@@ -5,9 +5,10 @@ Version: 0.1.0
 Date: 2026-06-12
 Authors@R: person("bagol1000", role = c("aut", "cre"),
     email = "01199218@pw.edu.pl")
-Description: High-performance rolling window statistics (mean, variance,
-    standard deviation, sum, minimum, maximum, simple linear regression)
-    backed by a shared 'C++17' core with 'OpenMP' support.
+Description: High-performance rolling window statistics including basic
+    moments, minima and maxima, linear regression, covariance, Pearson and
+    Spearman correlation, correlation matrices, quantiles, and expanding
+    windows backed by a shared 'C++17' core with 'OpenMP' support.
 License: MIT + file LICENSE
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp

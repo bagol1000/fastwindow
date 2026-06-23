@@ -59,7 +59,24 @@ static void check_window(size_t window) {
 }
 
 static int resolve_min_periods(int min_periods, size_t window) {
-    return (min_periods < 0) ? static_cast<int>(window) : min_periods;
+    if (min_periods == -1)
+        return static_cast<int>(window);
+    if (min_periods < 0)
+        throw std::invalid_argument("min_periods must be >= 0");
+    return min_periods;
+}
+
+static int resolve_min_periods_default(int min_periods, int default_value) {
+    if (min_periods == -1)
+        return default_value;
+    if (min_periods < 0)
+        throw std::invalid_argument("min_periods must be >= 0");
+    return min_periods;
+}
+
+static void check_n_threads(int n_threads) {
+    if (n_threads < 0)
+        throw std::invalid_argument("n_threads must be >= 0");
 }
 
 //Wrappers
@@ -72,10 +89,14 @@ static py::array_t<double> py_rolling_mean(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_mean(
-        src.data(), dst.mutable_data(), n,
-        window, resolve_min_periods(min_periods, window), skip_nan,
-        n_threads);
+    int mp = resolve_min_periods(min_periods, window);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_mean(
+            src.data(), dst.mutable_data(), n, window, mp, skip_nan,
+            n_threads);
+    }
     return dst;
 }
 
@@ -89,10 +110,14 @@ static py::array_t<double> py_rolling_var(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_var(
-        src.data(), dst.mutable_data(), n,
-        window, resolve_min_periods(min_periods, window), ddof == 1, skip_nan,
-        n_threads);
+    int mp = resolve_min_periods(min_periods, window);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_var(
+            src.data(), dst.mutable_data(), n,
+            window, mp, ddof == 1, skip_nan, n_threads);
+    }
     return dst;
 }
 
@@ -106,10 +131,14 @@ static py::array_t<double> py_rolling_std(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_std(
-        src.data(), dst.mutable_data(), n,
-        window, resolve_min_periods(min_periods, window), ddof == 1, skip_nan,
-        n_threads);
+    int mp = resolve_min_periods(min_periods, window);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_std(
+            src.data(), dst.mutable_data(), n,
+            window, mp, ddof == 1, skip_nan, n_threads);
+    }
     return dst;
 }
 
@@ -121,10 +150,14 @@ static py::array_t<double> py_rolling_sum(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_sum(
-        src.data(), dst.mutable_data(), n,
-        window, resolve_min_periods(min_periods, window), skip_nan,
-        n_threads);
+    int mp = resolve_min_periods(min_periods, window);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_sum(
+            src.data(), dst.mutable_data(), n, window, mp, skip_nan,
+            n_threads);
+    }
     return dst;
 }
 
@@ -135,8 +168,12 @@ static py::array_t<double> py_rolling_min(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_min(src.data(), dst.mutable_data(), n, window,
-                            n_threads);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_min(src.data(), dst.mutable_data(), n, window,
+                                n_threads);
+    }
     return dst;
 }
 
@@ -147,8 +184,12 @@ static py::array_t<double> py_rolling_max(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_max(src.data(), dst.mutable_data(), n, window,
-                            n_threads);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_max(src.data(), dst.mutable_data(), n, window,
+                                n_threads);
+    }
     return dst;
 }
 
@@ -167,9 +208,13 @@ static py::dict py_rolling_regression(
     auto b0 = make_output(static_cast<py::ssize_t>(n));
     auto b1 = make_output(static_cast<py::ssize_t>(n));
     auto r2 = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::rolling_simple_regression(
-        ysrc.data(), b0.mutable_data(), b1.mutable_data(), r2.mutable_data(),
-        n, window, resolve_min_periods(min_periods, window), true);
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_simple_regression(
+            ysrc.data(), b0.mutable_data(), b1.mutable_data(),
+            r2.mutable_data(), n, window, mp, true);
+    }
     py::dict out;
     out["intercept"] = b0;
     out["slope"]     = b1;
@@ -189,10 +234,14 @@ static py::dict py_rolling_regression_xy(
     auto b0 = make_output(static_cast<py::ssize_t>(n));
     auto b1 = make_output(static_cast<py::ssize_t>(n));
     auto r2 = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::rolling_simple_regression_xy(
-        xsrc.data(), ysrc.data(),
-        b0.mutable_data(), b1.mutable_data(), r2.mutable_data(),
-        n, window, resolve_min_periods(min_periods, window));
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_simple_regression_xy(
+            xsrc.data(), ysrc.data(),
+            b0.mutable_data(), b1.mutable_data(), r2.mutable_data(),
+            n, window, mp);
+    }
     py::dict out;
     out["intercept"] = b0;
     out["slope"]     = b1;
@@ -227,10 +276,14 @@ static py::dict py_rolling_multiple_regression(
                                   static_cast<py::ssize_t>(k + 1)});
     auto r2      = make_output(static_cast<py::ssize_t>(n));
     auto res_std = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::rolling_multiple_regression(
-        ysrc.data(), Xsrc.data(),
-        beta.mutable_data(), r2.mutable_data(), res_std.mutable_data(),
-        n, k, window, resolve_min_periods(min_periods, window));
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_multiple_regression(
+            ysrc.data(), Xsrc.data(),
+            beta.mutable_data(), r2.mutable_data(), res_std.mutable_data(),
+            n, k, window, mp);
+    }
     py::dict out;
     out["coef"]         = beta;
     out["r2"]           = r2;
@@ -257,15 +310,21 @@ static py::object py_rolling_corr(
     int mp = resolve_min_periods(min_periods, window);
     if (return_cov) {
         auto cov = make_output(static_cast<py::ssize_t>(n));
-        fastwindow::rolling_corr(
-            xsrc.data(), ysrc.data(),
-            corr.mutable_data(), cov.mutable_data(),
-            n, window, mp, skip_nan);
+        {
+            py::gil_scoped_release release;
+            fastwindow::rolling_corr(
+                xsrc.data(), ysrc.data(),
+                corr.mutable_data(), cov.mutable_data(),
+                n, window, mp, skip_nan);
+        }
         return py::make_tuple(corr, cov);
     }
-    fastwindow::rolling_corr(
-        xsrc.data(), ysrc.data(), corr.mutable_data(), nullptr,
-        n, window, mp, skip_nan);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_corr(
+            xsrc.data(), ysrc.data(), corr.mutable_data(), nullptr,
+            n, window, mp, skip_nan);
+    }
     return corr;
 }
 
@@ -282,10 +341,13 @@ static py::array_t<double> py_rolling_cov(
         throw std::invalid_argument("x and y must have the same length");
     size_t n = static_cast<size_t>(xsrc.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_cov(
-        xsrc.data(), ysrc.data(), dst.mutable_data(),
-        n, window, resolve_min_periods(min_periods, window),
-        ddof == 1, skip_nan);
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_cov(
+            xsrc.data(), ysrc.data(), dst.mutable_data(),
+            n, window, mp, ddof == 1, skip_nan);
+    }
     return dst;
 }
 
@@ -294,6 +356,7 @@ static py::array_t<double> py_rolling_cov(
 static py::array_t<double> py_rolling_corr_matrix(
         const py::array& X, size_t window, int min_periods, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     if (X.ndim() != 2)
         throw std::invalid_argument("X must be a 2-D array of shape (n, p)");
     auto Xsrc = FortranDouble::ensure(X);
@@ -327,6 +390,7 @@ static py::array_t<double> py_rolling_corr_matrix(
 static py::array_t<double> py_corr_matrix_pairs(
         const py::array& X, size_t window, int min_periods, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     if (X.ndim() != 2)
         throw std::invalid_argument("X must be a 2-D array of shape (n, p)");
     auto Xsrc = FortranDouble::ensure(X);
@@ -358,9 +422,12 @@ static py::array_t<double> py_rolling_quantile(
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_quantile(
-        src.data(), dst.mutable_data(), n, window, q,
-        resolve_min_periods(min_periods, window), exact);
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_quantile(
+            src.data(), dst.mutable_data(), n, window, q, mp, exact);
+    }
     return dst;
 }
 
@@ -369,7 +436,11 @@ static py::array_t<double> py_expanding_mean(const py::array& x,
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::expanding_mean(src.data(), dst.mutable_data(), n, min_periods);
+    int mp = resolve_min_periods_default(min_periods, 1);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_mean(src.data(), dst.mutable_data(), n, mp);
+    }
     return dst;
 }
 
@@ -380,8 +451,12 @@ static py::array_t<double> py_expanding_var(const py::array& x,
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::expanding_var(src.data(), dst.mutable_data(), n,
-                              min_periods, ddof == 1);
+    int mp = resolve_min_periods_default(min_periods, 2);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_var(src.data(), dst.mutable_data(), n,
+                                  mp, ddof == 1);
+    }
     return dst;
 }
 
@@ -392,8 +467,12 @@ static py::array_t<double> py_expanding_std(const py::array& x,
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::expanding_std(src.data(), dst.mutable_data(), n,
-                              min_periods, ddof == 1);
+    int mp = resolve_min_periods_default(min_periods, 2);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_std(src.data(), dst.mutable_data(), n,
+                                  mp, ddof == 1);
+    }
     return dst;
 }
 
@@ -402,7 +481,11 @@ static py::array_t<double> py_expanding_sum(const py::array& x,
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::expanding_sum(src.data(), dst.mutable_data(), n, min_periods);
+    int mp = resolve_min_periods_default(min_periods, 1);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_sum(src.data(), dst.mutable_data(), n, mp);
+    }
     return dst;
 }
 
@@ -416,9 +499,13 @@ static py::dict py_expanding_regression(const py::array& y,
     auto b0 = make_output(static_cast<py::ssize_t>(n));
     auto b1 = make_output(static_cast<py::ssize_t>(n));
     auto r2 = make_output(static_cast<py::ssize_t>(n));
-    fastwindow::expanding_regression(
-        ysrc.data(), b0.mutable_data(), b1.mutable_data(), r2.mutable_data(),
-        n, (min_periods < 0) ? 2 : min_periods);
+    int mp = resolve_min_periods_default(min_periods, 2);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_regression(
+            ysrc.data(), b0.mutable_data(), b1.mutable_data(),
+            r2.mutable_data(), n, mp);
+    }
     py::dict out;
     out["intercept"] = b0;
     out["slope"]     = b1;
@@ -448,6 +535,7 @@ static py::array_t<double> run_2d(const py::array& X, Kernel&& kernel) {
 static py::array_t<double> py_rolling_mean_2d(
         const py::array& X, size_t window, int min_periods, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     int mp = resolve_min_periods(min_periods, window);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
         fastwindow::rolling_mean_matrix(src, dst, n, p, window, mp, n_threads);
@@ -458,6 +546,7 @@ static py::array_t<double> py_rolling_std_2d(
         const py::array& X, size_t window, int min_periods,
         int ddof, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     if (ddof < 0 || ddof > 1)
         throw std::invalid_argument("ddof must be 0 or 1");
     int mp = resolve_min_periods(min_periods, window);
@@ -470,6 +559,7 @@ static py::array_t<double> py_rolling_std_2d(
 static py::array_t<double> py_rolling_sum_2d(
         const py::array& X, size_t window, int min_periods, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     int mp = resolve_min_periods(min_periods, window);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
         fastwindow::rolling_sum_matrix(src, dst, n, p, window, mp, n_threads);
@@ -479,6 +569,7 @@ static py::array_t<double> py_rolling_sum_2d(
 static py::array_t<double> py_rolling_min_2d(
         const py::array& X, size_t window, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
         fastwindow::rolling_min_matrix(src, dst, n, p, window, n_threads);
     });
@@ -487,6 +578,7 @@ static py::array_t<double> py_rolling_min_2d(
 static py::array_t<double> py_rolling_max_2d(
         const py::array& X, size_t window, int n_threads) {
     check_window(window);
+    check_n_threads(n_threads);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
         fastwindow::rolling_max_matrix(src, dst, n, p, window, n_threads);
     });
@@ -502,9 +594,12 @@ static py::array_t<double> py_rolling_spearman(
         throw std::invalid_argument("x and y must have the same length");
     size_t n = static_cast<size_t>(xsrc.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
-    fastwindow::rolling_spearman(
-        xsrc.data(), ysrc.data(), dst.mutable_data(),
-        n, window, resolve_min_periods(min_periods, window));
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_spearman(
+            xsrc.data(), ysrc.data(), dst.mutable_data(), n, window, mp);
+    }
     return dst;
 }
 
@@ -643,8 +738,9 @@ PYBIND11_MODULE(_core, m) {
           py::arg("min_periods") = -1,
           py::arg("exact")       = false,
           py::arg("out")         = py::none(),
-          "Rolling quantile. exact=False uses the P2 streaming approximation;"
-          " exact=True maintains a sorted window (window <= 500).");
+          "Rolling quantile. exact=False uses a P2 streaming approximation "
+          "over observations seen so far; exact=True maintains an exact "
+          "rolling window with lazy-deletion heaps.");
 
     m.def("expanding_mean", &py_expanding_mean,
           py::arg("x"), py::arg("min_periods") = 1,

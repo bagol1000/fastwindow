@@ -72,3 +72,9 @@ class TestInputs:
     def test_window_zero(self, X):
         with pytest.raises(ValueError):
             fw.rolling_mean_2d(X, window=0)
+
+
+class TestValidation:
+    def test_negative_n_threads_rejected(self, X):
+        with pytest.raises(ValueError, match="n_threads"):
+            fw.rolling_mean_2d(X, window=30, n_threads=-1)

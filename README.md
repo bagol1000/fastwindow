@@ -70,9 +70,15 @@ fw.rolling_mean(x, window=3, skip_nan=True, min_periods=2)
 ```python
 x = np.random.randn(1000)
 
-fw.rolling_quantile(x, window=50, q=0.5)               # exact rolling median
-fw.rolling_quantile(x, window=50, q=0.9, exact=False)  # fast P²-approximate
+fw.rolling_quantile(x, window=50, q=0.5, exact=True)   # exact rolling median
+fw.rolling_quantile(x, window=50, q=0.9)               # fast P² streaming approximation
 ```
+
+With `exact=True`, the result is the exact quantile of the current rolling
+window and matches NumPy/R type-7 interpolation. With `exact=False`
+(default), P² is an O(1) streaming estimator over observations seen so far;
+it is useful for stationary series but is not an exact rolling-window
+quantile on drifting distributions.
 
 ### Correlation and covariance
 
@@ -163,8 +169,8 @@ rolling_mean_matrix(X, window = 100)
 ## Install
 
 ```bash
-pip install fastwindow            # Python (not yet)
-R CMD INSTALL fastroll_0.1.0.tar.gz   # R (not yet)
+pip install .                    # Python from this source tree
+R CMD INSTALL .                   # R from this source tree
 ```
 
 For maximum performance build from source on the target machine; the

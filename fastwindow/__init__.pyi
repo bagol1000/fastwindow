@@ -308,9 +308,10 @@ def rolling_quantile(
     min_periods : int, optional
     exact : bool, default False
         False uses the P-squared streaming approximation (Jain & Chlamtac,
-        1985) — O(1) per step, approximate.  True uses an exact two-heap
-        order-statistic structure (O(log window) amortised per step;
-        matches ``numpy.percentile``); any window size.
+        1985) over observations seen so far, so it is O(1) per step but is
+        not an exact rolling-window quantile on drifting distributions.
+        True uses an exact two-heap order-statistic structure (O(log window)
+        amortised per step; matches ``numpy.percentile``); any window size.
 
     Returns
     -------

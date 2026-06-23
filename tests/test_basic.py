@@ -377,3 +377,13 @@ class TestNumericalStability:
         finite = ~np.isnan(exp)
         max_err = np.max(np.abs(out[finite] - exp[finite]))
         assert max_err < 1e-7, f"max std error {max_err} exceeds 1e-7"
+
+
+class TestPythonValidation:
+    def test_negative_min_periods_rejected(self):
+        with pytest.raises(ValueError, match="min_periods"):
+            fw.rolling_mean(np.arange(5.0), window=3, min_periods=-2)
+
+    def test_negative_n_threads_rejected(self):
+        with pytest.raises(ValueError, match="n_threads"):
+            fw.rolling_mean(np.arange(5.0), window=3, n_threads=-1)

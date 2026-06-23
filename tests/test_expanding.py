@@ -95,3 +95,9 @@ class TestExpandingRegression:
     def test_time_as_x_false_raises(self):
         with pytest.raises(ValueError):
             fw.expanding_regression(np.arange(10.0), time_as_x=False)
+
+
+class TestValidation:
+    def test_negative_min_periods_rejected(self):
+        with pytest.raises(ValueError, match="min_periods"):
+            fw.expanding_mean(np.arange(5.0), min_periods=-2)

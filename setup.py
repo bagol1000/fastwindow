@@ -26,6 +26,14 @@ class FastwindowBuildExt(build_ext):
             compiler = self.compiler.__class__.__name__
 
         base_flags  = ["-O3", "-ffast-math", "-std=c++17"]
+        #No -ffast-math under clang (macOS or CC=clang builds): clang's
+        #-ffinite-math-only folds NaN constants through select/phi
+        #("no NaNs exist"), silently breaking the library's NaN-propagation
+        #contract (and crashing the spearman NaN bookkeeping).  GCC does
+        #not fold these.  Clang has FMA contraction on by default, so the
+        #flag buys little there anyway.
+        if sys.platform == "darwin" or "clang" in compiler:
+            base_flags.remove("-ffast-math")
         #FASTWINDOW_PORTABLE: set when building distributable wheels —
         #-march=native would emit ISA the target machine may not have.
         #macOS is excluded too: universal2 builds compile every file for

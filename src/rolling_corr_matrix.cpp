@@ -74,10 +74,14 @@ void corr_matrix_expand(
         //keeps the n_pairs strided tri streams cache-line-resident.
         //(Non-temporal stores were tried here and measured slower: the
         //800-byte per-slice runs thrash the write-combining buffers.)
+        //signed loop index: MSVC only implements OpenMP 2.0, which rejects
+        //unsigned induction variables (C3016)
+        const long long ns = static_cast<long long>(n);
 #ifdef _OPENMP
         #pragma omp parallel for schedule(static) num_threads(nt)
 #endif
-        for (size_t t = 0; t < n; t++) {
+        for (long long ts = 0; ts < ns; ts++) {
+            const size_t t = static_cast<size_t>(ts);
             double* FW_RESTRICT o = out + t * pp;
             for (int d = 0; d < p; d++) o[d * p + d] = 1.0;
             for (int k = 0; k < n_pairs; k++) {

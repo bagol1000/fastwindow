@@ -106,12 +106,12 @@ static constexpr double DNAN = std::numeric_limits<double>::quiet_NaN();
 #if FW_SIMD
 //Blocked AVX2 kernels (van Herk structure); defined further below.
 namespace {
-static void run_sum_blocked(const double* __restrict__ x,
-                            double* __restrict__ dst,
+static void run_sum_blocked(const double* FW_RESTRICT x,
+                            double* FW_RESTRICT dst,
                             size_t n, size_t w, int min_periods,
                             bool mean_div, int n_threads);
-static void run_var_blocked(const double* __restrict__ x,
-                            double* __restrict__ dst,
+static void run_var_blocked(const double* FW_RESTRICT x,
+                            double* FW_RESTRICT dst,
                             size_t n, size_t w, int min_periods,
                             bool ddof1, bool do_sqrt, int n_threads);
 }
@@ -137,8 +137,8 @@ static void reinit_welford(const RollingBuffer<double>& buf,
 //Kahan-compensated rescan of the source window every 4096 steps.
 
 template <bool SKIP, bool MEAN>
-static void run_sum_kernel(const double* __restrict__ x,
-                           double* __restrict__ dst,
+static void run_sum_kernel(const double* FW_RESTRICT x,
+                           double* FW_RESTRICT dst,
                            size_t n, size_t window, int min_periods) {
     double sum = 0.0;
     size_t nv = 0;             //valid (finite) values in the window
@@ -354,8 +354,8 @@ using simd::bad_lanes;
 //early with emit disabled, so the seed Sprev is computed by the exact
 //same code path — results are bitwise identical for any partition.
 template <bool MIN>
-static void minmax_blocked_range(const double* __restrict__ x,
-                                 double* __restrict__ dst,
+static void minmax_blocked_range(const double* FW_RESTRICT x,
+                                 double* FW_RESTRICT dst,
                                  size_t n, size_t w,
                                  size_t k_lo, size_t k_hi) {
     const double SENT = MIN ?  std::numeric_limits<double>::infinity()
@@ -490,8 +490,8 @@ static int blk_threads(int n_threads) {
 }
 
 template <bool MIN>
-static void run_minmax_blocked(const double* __restrict__ x,
-                               double* __restrict__ dst,
+static void run_minmax_blocked(const double* FW_RESTRICT x,
+                               double* FW_RESTRICT dst,
                                size_t n, size_t w, int n_threads) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();
     for (size_t i = 0; i + 1 < w && i < n; i++) dst[i] = QNAN;
@@ -524,8 +524,8 @@ using simd::scan_bwd_add;
 /// Blocked rolling sum/mean (skip_nan = false).  mean_div selects division
 /// by the window length; the warmup region is handled scalar so that
 /// min_periods < window still emits partial results.
-static void sum_blocked_range(const double* __restrict__ x,
-                              double* __restrict__ dst,
+static void sum_blocked_range(const double* FW_RESTRICT x,
+                              double* FW_RESTRICT dst,
                               size_t n, size_t w, bool mean_div,
                               size_t k_lo, size_t k_hi) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();
@@ -625,8 +625,8 @@ static void sum_blocked_range(const double* __restrict__ x,
     _mm_sfence();
 }
 
-static void run_sum_blocked(const double* __restrict__ x,
-                            double* __restrict__ dst,
+static void run_sum_blocked(const double* FW_RESTRICT x,
+                            double* FW_RESTRICT dst,
                             size_t n, size_t w, int min_periods,
                             bool mean_div, int n_threads) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();
@@ -665,8 +665,8 @@ static void run_sum_blocked(const double* __restrict__ x,
 /// Blocked rolling variance/std (skip_nan = false): two additive streams
 /// (x and x²); var = (Σx² − (Σx)²/w) / (w − ddof), clamped at 0; std takes
 /// _mm256_sqrt_pd in the same write pass.
-static void var_blocked_range(const double* __restrict__ x,
-                              double* __restrict__ dst,
+static void var_blocked_range(const double* FW_RESTRICT x,
+                              double* FW_RESTRICT dst,
                               size_t n, size_t w,
                               bool ddof1, bool do_sqrt,
                               size_t k_lo, size_t k_hi) {
@@ -803,8 +803,8 @@ static void var_blocked_range(const double* __restrict__ x,
     _mm_sfence();
 }
 
-static void run_var_blocked(const double* __restrict__ x,
-                            double* __restrict__ dst,
+static void run_var_blocked(const double* FW_RESTRICT x,
+                            double* FW_RESTRICT dst,
                             size_t n, size_t w, int min_periods,
                             bool ddof1, bool do_sqrt, int n_threads) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();

@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/fastwindow.svg)](https://pypi.org/project/fastwindow/)
 [![CI](https://github.com/bagol1000/fastwindow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagol1000/fastwindow/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 High-performance rolling window statistics with a shared C++17 core
 (AVX2 + OpenMP), exposed to **Python** (pybind11) as `fastwindow` and to **R** (Rcpp) as `fastroll`.
@@ -70,14 +70,14 @@ fw.rolling_mean(x, window=3, skip_nan=True, min_periods=2)
 ```python
 x = np.random.randn(1000)
 
-fw.rolling_quantile(x, window=50, q=0.5, exact=True)   # exact rolling median
-fw.rolling_quantile(x, window=50, q=0.9)               # fast P² streaming approximation
+fw.rolling_quantile(x, window=50, q=0.5)               # exact rolling median
+fw.rolling_quantile(x, window=50, q=0.9, exact=False)  # fast P² streaming approximation
 ```
 
-With `exact=True`, the result is the exact quantile of the current rolling
-window and matches NumPy/R type-7 interpolation. With `exact=False`
-(default), P² is an O(1) streaming estimator over observations seen so far;
-it is useful for stationary series but is not an exact rolling-window
+With `exact=True` (the default), the result is the exact quantile of the
+current rolling window and matches NumPy/R type-7 interpolation. With
+`exact=False`, P² is an O(1) streaming estimator over observations seen so
+far; it is useful for stationary series but is not an exact rolling-window
 quantile on drifting distributions.
 
 ### Correlation and covariance
@@ -139,7 +139,7 @@ fw.rolling_mean_2d(X, window=100)     # also _std / _sum / _min / _max
 ### Threads and CPU features
 
 ```python
-fw.set_num_threads(8)     # 0 = library default
+fw.set_num_threads(8)     # OpenMP default used when n_threads=0 (n >= 1)
 fw.get_num_threads()
 fw.has_avx2()             # True if the AVX2 kernels are active
 ```
@@ -199,4 +199,4 @@ source build adds `-march=native` AVX2 kernels automatically.
 
 ## License
 
-Released under the MIT License. See [LICENSE](LICENSE) for details.
+Released under the MIT License. See [LICENSE.md](LICENSE.md) for details.

@@ -78,7 +78,7 @@ void corr_matrix_expand(
         #pragma omp parallel for schedule(static) num_threads(nt)
 #endif
         for (size_t t = 0; t < n; t++) {
-            double* __restrict__ o = out + t * pp;
+            double* FW_RESTRICT o = out + t * pp;
             for (int d = 0; d < p; d++) o[d * p + d] = 1.0;
             for (int k = 0; k < n_pairs; k++) {
                 double v = tri[static_cast<size_t>(k) * n + t];
@@ -95,15 +95,15 @@ void corr_matrix_expand(
         for (int k = -p; k < n_pairs; k++) {
             if (k < 0) {           //negative indices fill the unit diagonal
                 int d = k + p;
-                double* __restrict__ o = out +
+                double* FW_RESTRICT o = out +
                     static_cast<size_t>(d) * n * p + static_cast<size_t>(d) * n;
                 for (size_t t = 0; t < n; t++) o[t] = 1.0;
             } else {
-                const double* __restrict__ src = tri + static_cast<size_t>(k) * n;
-                double* __restrict__ up = out +
+                const double* FW_RESTRICT src = tri + static_cast<size_t>(k) * n;
+                double* FW_RESTRICT up = out +
                     static_cast<size_t>(pj[k]) * n * p +
                     static_cast<size_t>(pi[k]) * n;
-                double* __restrict__ lo = out +
+                double* FW_RESTRICT lo = out +
                     static_cast<size_t>(pi[k]) * n * p +
                     static_cast<size_t>(pj[k]) * n;
                 for (size_t t = 0; t < n; t++) {

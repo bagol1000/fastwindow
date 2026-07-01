@@ -33,8 +33,11 @@ static ContiguousDouble ensure_contiguous(const py::array& arr) {
 
 /// Resolve the optional out= argument: validate and reuse the caller's
 /// buffer, or allocate a fresh array.  Reuse avoids the page-fault cost of
-/// a new 8n-byte allocation per call in tight loops.
-static py::array_t<double> resolve_out(const py::object& out, py::ssize_t n) {
+/// a new 8n-byte allocation per call in tight loops.  The kernels re-read
+/// evicted source values, so out must not alias an input buffer.
+static py::array_t<double> resolve_out(const py::object& out, py::ssize_t n,
+                                       const void* src1,
+                                       const void* src2 = nullptr) {
     if (out.is_none())
         return py::array_t<double>(n);
     auto arr = py::cast<py::array>(out);
@@ -45,6 +48,9 @@ static py::array_t<double> resolve_out(const py::object& out, py::ssize_t n) {
         throw std::invalid_argument(
             "out must be a writable C-contiguous float64 array with the "
             "same length as the input");
+    if (arr.data() == src1 || (src2 && arr.data() == src2))
+        throw std::invalid_argument(
+            "out must not be the same array as the input");
     return arr.cast<py::array_t<double>>();
 }
 
@@ -88,7 +94,7 @@ static py::array_t<double> py_rolling_mean(
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
@@ -109,7 +115,7 @@ static py::array_t<double> py_rolling_var(
         throw std::invalid_argument("ddof must be 0 or 1");
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
@@ -130,7 +136,7 @@ static py::array_t<double> py_rolling_std(
         throw std::invalid_argument("ddof must be 0 or 1");
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
@@ -149,7 +155,7 @@ static py::array_t<double> py_rolling_sum(
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
@@ -167,7 +173,7 @@ static py::array_t<double> py_rolling_min(
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     check_n_threads(n_threads);
     {
         py::gil_scoped_release release;
@@ -183,7 +189,7 @@ static py::array_t<double> py_rolling_max(
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     check_n_threads(n_threads);
     {
         py::gil_scoped_release release;
@@ -306,7 +312,7 @@ static py::object py_rolling_corr(
     if (xsrc.shape(0) != ysrc.shape(0))
         throw std::invalid_argument("x and y must have the same length");
     size_t n = static_cast<size_t>(xsrc.shape(0));
-    auto corr = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto corr = resolve_out(out, static_cast<py::ssize_t>(n), xsrc.data(), ysrc.data());
     int mp = resolve_min_periods(min_periods, window);
     if (return_cov) {
         auto cov = make_output(static_cast<py::ssize_t>(n));
@@ -340,7 +346,7 @@ static py::array_t<double> py_rolling_cov(
     if (xsrc.shape(0) != ysrc.shape(0))
         throw std::invalid_argument("x and y must have the same length");
     size_t n = static_cast<size_t>(xsrc.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), xsrc.data(), ysrc.data());
     int mp = resolve_min_periods(min_periods, window);
     {
         py::gil_scoped_release release;
@@ -421,7 +427,7 @@ static py::array_t<double> py_rolling_quantile(
         throw std::invalid_argument("q must be strictly between 0 and 1");
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
     int mp = resolve_min_periods(min_periods, window);
     {
         py::gil_scoped_release release;
@@ -593,7 +599,7 @@ static py::array_t<double> py_rolling_spearman(
     if (xsrc.shape(0) != ysrc.shape(0))
         throw std::invalid_argument("x and y must have the same length");
     size_t n = static_cast<size_t>(xsrc.shape(0));
-    auto dst = resolve_out(out, static_cast<py::ssize_t>(n));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), xsrc.data(), ysrc.data());
     int mp = resolve_min_periods(min_periods, window);
     {
         py::gil_scoped_release release;
@@ -736,11 +742,12 @@ PYBIND11_MODULE(_core, m) {
           py::arg("x"), py::arg("window"),
           py::arg("q")           = 0.5,
           py::arg("min_periods") = -1,
-          py::arg("exact")       = false,
+          py::arg("exact")       = true,
           py::arg("out")         = py::none(),
-          "Rolling quantile. exact=False uses a P2 streaming approximation "
-          "over observations seen so far; exact=True maintains an exact "
-          "rolling window with lazy-deletion heaps.");
+          "Rolling quantile. exact=True (default) maintains an exact "
+          "rolling window with lazy-deletion heaps; exact=False uses the "
+          "faster P2 streaming approximation, which estimates the quantile "
+          "of all observations seen so far, not of the window.");
 
     m.def("expanding_mean", &py_expanding_mean,
           py::arg("x"), py::arg("min_periods") = 1,

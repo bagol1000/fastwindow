@@ -61,6 +61,14 @@ class TestOutParam:
         with pytest.raises(ValueError):
             fw.rolling_corr(x, x, 50, return_cov=True, out=np.empty_like(x))
 
+    def test_out_aliasing_input_raises(self, x):
+        #kernels re-read evicted source values, so in-place would corrupt
+        with pytest.raises(ValueError):
+            fw.rolling_mean(x, 100, out=x)
+        y = np.random.default_rng(8).standard_normal(len(x))
+        with pytest.raises(ValueError):
+            fw.rolling_corr(x, y, 50, out=y)
+
 
 class TestOneDThreads:
     @pytest.mark.parametrize("fn", [fw.rolling_mean, fw.rolling_std, fw.rolling_min, fw.rolling_max, fw.rolling_sum, fw.rolling_var])

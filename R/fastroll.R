@@ -354,25 +354,28 @@ rolling_corr_matrix <- function(X, window, min_periods = window,
 
 #' Rolling quantile
 #'
-#' @description Computes a rolling quantile.  With \code{exact = FALSE}
-#'   (default) the P-squared streaming approximation (Jain & Chlamtac, 1985)
-#'   is used — O(1) per step, suitable for stationary series.  With
-#'   \code{exact = TRUE} an exact two-heap order-statistic structure is used
+#' @description Computes a rolling quantile.  With \code{exact = TRUE}
+#'   (default) an exact two-heap order-statistic structure is used
 #'   (O(log window) amortised per step) and the result matches
-#'   \code{quantile(type = 7)} / \code{numpy.percentile}.
+#'   \code{quantile(type = 7)} / \code{numpy.percentile}.  With
+#'   \code{exact = FALSE} the faster P-squared streaming approximation
+#'   (Jain & Chlamtac, 1985) is used — O(1) per step, but it estimates the
+#'   quantile of all observations seen so far rather than of the window,
+#'   so it is only suitable for stationary series.
 #'
 #' @inheritParams rolling_mean
 #' @param q the quantile, strictly between 0 and 1.
-#' @param exact use the exact sorted-buffer mode instead of P-squared.
+#' @param exact if \code{FALSE}, use the P-squared streaming approximation
+#'   instead of the exact window quantile.
 #'
 #' @return A numeric vector of the same length as \code{x}.
 #'
 #' @examples
-#' rolling_quantile(rnorm(100), window = 20, q = 0.5, exact = TRUE)
+#' rolling_quantile(rnorm(100), window = 20, q = 0.5)
 #'
 #' @export
 rolling_quantile <- function(x, window, q = 0.5, min_periods = window,
-                             exact = FALSE) {
+                             exact = TRUE) {
     .check_basic_args(x, window, min_periods)
     if (length(q) != 1L || !is.finite(q) || q <= 0 || q >= 1)
         stop("`q` must be strictly between 0 and 1")

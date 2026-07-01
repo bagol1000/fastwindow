@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21
+        uses: pypa/cibuildwheel@v3.2
         env:
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
+          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
           # skip 32-bit targets: numpy no longer ships 32-bit wheels so the build dep can't resolve
           CIBW_SKIP: "*-musllinux_i686 *_i686 *-win32"
           # -march=native is not portable across machines; wheels use the

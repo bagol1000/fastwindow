@@ -21,7 +21,7 @@ static constexpr double DNAN = std::numeric_limits<double>::quiet_NaN();
 /// on a value already in an xmm register.
 static inline bool finite_mem(const double* p) {
     uint64_t u;
-    __builtin_memcpy(&u, p, sizeof(u));
+    std::memcpy(&u, p, sizeof(u));
     return (u & 0x7FF0000000000000ULL) != 0x7FF0000000000000ULL;
 }
 
@@ -91,7 +91,7 @@ double RunningCorrelation::cov(bool ddof1) const {
 
 template <bool SKIP, typename Emit>
 static void run_corr_kernel(
-        const double* __restrict__ x, const double* __restrict__ y,
+        const double* FW_RESTRICT x, const double* FW_RESTRICT y,
         size_t n, size_t window, int min_periods, Emit&& emit) {
     //Local scalars (not a struct passed by reference) so the sums live in
     //registers across iterations instead of bouncing through the stack.
@@ -227,8 +227,8 @@ using simd::scan_bwd_add;
 using simd::bad_lanes;
 
 static void run_corr_blocked(
-        const double* __restrict__ x, const double* __restrict__ y,
-        double* __restrict__ dst_corr, double* __restrict__ dst_cov,
+        const double* FW_RESTRICT x, const double* FW_RESTRICT y,
+        double* FW_RESTRICT dst_corr, double* FW_RESTRICT dst_cov,
         size_t n, size_t w, int min_periods, bool cov_ddof1) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();
 
@@ -474,8 +474,8 @@ void rolling_corr(
 #endif
 
     if (dst_cov) {
-        double* __restrict__ dc = dst_corr;
-        double* __restrict__ dv = dst_cov;
+        double* FW_RESTRICT dc = dst_corr;
+        double* FW_RESTRICT dv = dst_cov;
         run_corr_dispatch(x, y, n, window, min_periods, skip_nan,
             [=](size_t i, size_t nv, double sx, double sy,
                 double sxx, double syy, double sxy) {
@@ -487,7 +487,7 @@ void rolling_corr(
         //loop) was implemented and measured SLOWER here — out-of-order
         //execution already hides the per-step sqrt+div behind the serial
         //running-sum chain, so the extra pass only added memory traffic.
-        double* __restrict__ dc = dst_corr;
+        double* FW_RESTRICT dc = dst_corr;
         run_corr_dispatch(x, y, n, window, min_periods, skip_nan,
             [=](size_t i, size_t nv, double sx, double sy,
                 double sxx, double syy, double sxy) {
@@ -511,7 +511,7 @@ void rolling_cov(
     }
 #endif
 
-    double* __restrict__ d = dst;
+    double* FW_RESTRICT d = dst;
     run_corr_dispatch(x, y, n, window, min_periods, skip_nan,
         [=](size_t i, size_t nv, double sx, double sy,
             double /*sxx*/, double /*syy*/, double sxy) {

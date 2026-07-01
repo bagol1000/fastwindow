@@ -306,12 +306,12 @@ def rolling_quantile(
     q : float, default 0.5
         Strictly between 0 and 1.
     min_periods : int, optional
-    exact : bool, default False
+    exact : bool, default True
+        True uses an exact two-heap order-statistic structure (O(log window)
+        amortised per step; matches ``numpy.percentile``); any window size.
         False uses the P-squared streaming approximation (Jain & Chlamtac,
         1985) over observations seen so far, so it is O(1) per step but is
         not an exact rolling-window quantile on drifting distributions.
-        True uses an exact two-heap order-statistic structure (O(log window)
-        amortised per step; matches ``numpy.percentile``); any window size.
 
     Returns
     -------

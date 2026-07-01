@@ -19,3 +19,7 @@
 .*\.egg-info$
 .*\.so$
 .*\.whl$
+.*\.o$
+^notatki\.md$
+^LICENSE\.md$
+^MANIFEST\.in$

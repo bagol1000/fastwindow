@@ -85,8 +85,8 @@ ext_kwargs = dict(
 )
 
 setuptools.setup(
-    packages=setuptools.find_packages(),
-    include_package_data=True,
+    packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
+    package_data={"fastwindow": ["py.typed", "*.pyi"]},
     cmdclass={"build_ext": FastwindowBuildExt},
     ext_modules=[
         setuptools.Extension("fastwindow._core", **ext_kwargs)

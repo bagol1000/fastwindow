@@ -8,11 +8,14 @@ Authors@R: person("bagol1000", role = c("aut", "cre"),
 Description: High-performance rolling window statistics including basic
     moments, minima and maxima, linear regression, covariance, Pearson and
     Spearman correlation, correlation matrices, quantiles, and expanding
-    windows backed by a shared 'C++17' core with 'OpenMP' support.
+    windows backed by a shared 'C++17' core with 'OpenMP' support.  The
+    same core is published for 'Python' as the 'fastwindow' package.
 License: MIT + file LICENSE
+URL: https://github.com/bagol1000/fastwindow
+BugReports: https://github.com/bagol1000/fastwindow/issues
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp
 Suggests: testthat (>= 3.0.0)
 SystemRequirements: C++17, OpenMP
 Encoding: UTF-8
-RoxygenNote: 8.0.0
+RoxygenNote: 7.3.2

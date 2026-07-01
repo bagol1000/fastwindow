@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools>=68",
-    "pybind11>=2.11",
+    "pybind11>=2.13",
     "numpy>=1.26",
 ]
 build-backend = "setuptools.build_meta"
@@ -9,10 +9,37 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fastwindow"
 description = "High-performance rolling window statistics (C++17 + pybind11)"
+readme = "README.md"
 authors = [{name = "bagol1000"}]
+#classic license table form: PEP 639 SPDX strings need setuptools >= 77,
+#which system installs (e.g. Ubuntu dist-packages) may not have
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+keywords = [
+    "rolling", "sliding-window", "moving-average", "statistics",
+    "time-series", "quantile", "correlation", "regression", "simd",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: OS Independent",
+]
 dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/bagol1000/fastwindow"
+Repository = "https://github.com/bagol1000/fastwindow"
+Issues = "https://github.com/bagol1000/fastwindow/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "fastwindow.__version__"}

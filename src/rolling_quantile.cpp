@@ -155,7 +155,7 @@ void rolling_quantile(
 
         auto key = [](double v) {
             uint64_t u;
-            __builtin_memcpy(&u, &v, sizeof(u));
+            std::memcpy(&u, &v, sizeof(u));
             if (u == 0x8000000000000000ULL) u = 0;   //-0.0 and +0.0 are equal
             return u;
         };

@@ -4,7 +4,7 @@
 \alias{rolling_quantile}
 \title{Rolling quantile}
 \usage{
-rolling_quantile(x, window, q = 0.5, min_periods = window, exact = FALSE)
+rolling_quantile(x, window, q = 0.5, min_periods = window, exact = TRUE)
 }
 \arguments{
 \item{x}{numeric vector.}
@@ -16,20 +16,23 @@ rolling_quantile(x, window, q = 0.5, min_periods = window, exact = FALSE)
 \item{min_periods}{minimum number of valid observations required to
 emit a value; defaults to \code{window}.}
 
-\item{exact}{use the exact sorted-buffer mode instead of P-squared.}
+\item{exact}{if \code{FALSE}, use the P-squared streaming approximation
+instead of the exact window quantile.}
 }
 \value{
 A numeric vector of the same length as \code{x}.
 }
 \description{
-Computes a rolling quantile.  With \code{exact = FALSE}
-  (default) the P-squared streaming approximation (Jain & Chlamtac, 1985)
-  is used — O(1) per step, suitable for stationary series.  With
-  \code{exact = TRUE} an exact two-heap order-statistic structure is used
+Computes a rolling quantile.  With \code{exact = TRUE}
+  (default) an exact two-heap order-statistic structure is used
   (O(log window) amortised per step) and the result matches
-  \code{quantile(type = 7)} / \code{numpy.percentile}.
+  \code{quantile(type = 7)} / \code{numpy.percentile}.  With
+  \code{exact = FALSE} the faster P-squared streaming approximation
+  (Jain & Chlamtac, 1985) is used — O(1) per step, but it estimates the
+  quantile of all observations seen so far rather than of the window,
+  so it is only suitable for stationary series.
 }
 \examples{
-rolling_quantile(rnorm(100), window = 20, q = 0.5, exact = TRUE)
+rolling_quantile(rnorm(100), window = 20, q = 0.5)
 
 }

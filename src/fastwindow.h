@@ -7,8 +7,16 @@
 #include <deque>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <cmath>
 #include <limits>
+
+//MSVC spells the non-standard restrict qualifier without trailing underscores.
+#if defined(_MSC_VER)
+  #define FW_RESTRICT __restrict
+#else
+  #define FW_RESTRICT __restrict__
+#endif
 
 //AVX2 paths are enabled only when the compiler reports AVX2 support and the
 //user has not forced the scalar fallback with -DFASTWINDOW_NO_AVX2 (CI flag).
@@ -23,18 +31,18 @@ namespace fastwindow {
 
 //NaN-safe finite check
 //std::isfinite / std::isnan are optimised away by -ffast-math / -ffinite-math-only.
-//Use a bit-cast approach instead; __builtin_memcpy is a pure memory op, unaffected.
+//Use a bit-cast approach instead; std::memcpy is a pure memory op, unaffected.
 
 inline bool fw_isfinite(double x) noexcept {
     uint64_t u;
-    __builtin_memcpy(&u, &x, sizeof(u));
+    std::memcpy(&u, &x, sizeof(u));
     //Exponent bits all-1 → Inf or NaN
     return (u & 0x7FF0000000000000ULL) != 0x7FF0000000000000ULL;
 }
 
 inline bool fw_isfinite(float x) noexcept {
     uint32_t u;
-    __builtin_memcpy(&u, &x, sizeof(u));
+    std::memcpy(&u, &x, sizeof(u));
     return (u & 0x7F800000U) != 0x7F800000U;
 }
 

@@ -28,8 +28,14 @@ class FastwindowBuildExt(build_ext):
         base_flags  = ["-O3", "-ffast-math", "-std=c++17"]
         #FASTWINDOW_PORTABLE: set when building distributable wheels —
         #-march=native would emit ISA the target machine may not have.
-        march_flag  = [] if os.environ.get("FASTWINDOW_PORTABLE") \
-                      else ["-march=native"]
+        #macOS is excluded too: universal2 builds compile every file for
+        #both -arch slices, and -march=native resolves to the host CPU
+        #(e.g. apple-m3), which the x86_64 slice rejects; the AVX2 kernels
+        #are x86-only anyway.
+        march_flag  = []
+        if not os.environ.get("FASTWINDOW_PORTABLE") \
+                and sys.platform != "darwin":
+            march_flag = ["-march=native"]
 
         for ext in self.extensions:
             ext.extra_compile_args = list(ext.extra_compile_args)

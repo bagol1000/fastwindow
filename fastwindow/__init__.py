@@ -11,7 +11,7 @@ Series in → Series out with the index preserved, DataFrame in →
 DataFrame out for the 2-D functions.  Plain arrays stay plain arrays.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import sys as _sys
 

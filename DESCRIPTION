@@ -1,8 +1,8 @@
 Package: fastroll
 Type: Package
 Title: Fast Rolling Window Statistics
-Version: 0.1.0
-Date: 2026-06-12
+Version: 0.2.0
+Date: 2026-07-12
 Authors@R: person("bagol1000", role = c("aut", "cre"),
     email = "01199218@pw.edu.pl")
 Description: High-performance rolling window statistics including basic

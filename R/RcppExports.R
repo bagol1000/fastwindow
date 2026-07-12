@@ -17,12 +17,12 @@ cpp_rolling_sum <- function(x, window, min_periods, skip_nan, n_threads) {
     .Call(`_fastroll_cpp_rolling_sum`, x, window, min_periods, skip_nan, n_threads)
 }
 
-cpp_rolling_min <- function(x, window, n_threads) {
-    .Call(`_fastroll_cpp_rolling_min`, x, window, n_threads)
+cpp_rolling_min <- function(x, window, min_periods, skip_nan, n_threads) {
+    .Call(`_fastroll_cpp_rolling_min`, x, window, min_periods, skip_nan, n_threads)
 }
 
-cpp_rolling_max <- function(x, window, n_threads) {
-    .Call(`_fastroll_cpp_rolling_max`, x, window, n_threads)
+cpp_rolling_max <- function(x, window, min_periods, skip_nan, n_threads) {
+    .Call(`_fastroll_cpp_rolling_max`, x, window, min_periods, skip_nan, n_threads)
 }
 
 cpp_rolling_regression <- function(y, window, min_periods) {
@@ -85,12 +85,12 @@ cpp_rolling_sum_matrix <- function(X, window, min_periods, n_threads) {
     .Call(`_fastroll_cpp_rolling_sum_matrix`, X, window, min_periods, n_threads)
 }
 
-cpp_rolling_min_matrix <- function(X, window, n_threads) {
-    .Call(`_fastroll_cpp_rolling_min_matrix`, X, window, n_threads)
+cpp_rolling_min_matrix <- function(X, window, min_periods, skip_nan, n_threads) {
+    .Call(`_fastroll_cpp_rolling_min_matrix`, X, window, min_periods, skip_nan, n_threads)
 }
 
-cpp_rolling_max_matrix <- function(X, window, n_threads) {
-    .Call(`_fastroll_cpp_rolling_max_matrix`, X, window, n_threads)
+cpp_rolling_max_matrix <- function(X, window, min_periods, skip_nan, n_threads) {
+    .Call(`_fastroll_cpp_rolling_max_matrix`, X, window, min_periods, skip_nan, n_threads)
 }
 
 cpp_rolling_spearman <- function(x, y, window, min_periods) {

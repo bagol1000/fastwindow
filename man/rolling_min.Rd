@@ -4,12 +4,19 @@
 \alias{rolling_min}
 \title{Rolling minimum}
 \usage{
-rolling_min(x, window, n_threads = 0L)
+rolling_min(x, window, min_periods = window, skip_nan = FALSE, n_threads = 0L)
 }
 \arguments{
 \item{x}{numeric vector.}
 
 \item{window}{window length, a positive integer.}
+
+\item{min_periods}{minimum number of valid observations required to
+emit a value; positions with fewer get \code{NA}.  Defaults to
+\code{window}.}
+
+\item{skip_nan}{if \code{TRUE}, missing values are excluded from the
+window instead of propagating to the output.}
 
 \item{n_threads}{OpenMP threads over blocks (AVX2 builds only);
 \code{0L} (default) means single-threaded.}
@@ -19,11 +26,16 @@ A numeric vector of the same length as \code{x}.
 }
 \description{
 Computes the minimum over a sliding window in O(n) total
-  time via a monotonic deque.  Any \code{NA}/\code{NaN} inside the
-  window yields \code{NA} for that position.
+  time via a monotonic deque.  By default any \code{NA}/\code{NaN}
+  inside the window yields \code{NA} for that position; with
+  \code{skip_nan = TRUE} missing values are ignored instead (the
+  behaviour of \code{min(x, na.rm = TRUE)} per window) and
+  \code{min_periods} counts only the non-missing values.
 }
 \examples{
 rolling_min(c(3, 1, 4, 1, 5), window = 3)
+rolling_min(c(3, NA, 4, 1, 5), window = 3, min_periods = 1,
+            skip_nan = TRUE)
 
 }
 \seealso{

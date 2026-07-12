@@ -69,26 +69,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_rolling_min
-NumericVector cpp_rolling_min(NumericVector x, int window, int n_threads);
-RcppExport SEXP _fastroll_cpp_rolling_min(SEXP xSEXP, SEXP windowSEXP, SEXP n_threadsSEXP) {
+NumericVector cpp_rolling_min(NumericVector x, int window, int min_periods, bool skip_nan, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_min(SEXP xSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rolling_min(x, window, n_threads));
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_min(x, window, min_periods, skip_nan, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_rolling_max
-NumericVector cpp_rolling_max(NumericVector x, int window, int n_threads);
-RcppExport SEXP _fastroll_cpp_rolling_max(SEXP xSEXP, SEXP windowSEXP, SEXP n_threadsSEXP) {
+NumericVector cpp_rolling_max(NumericVector x, int window, int min_periods, bool skip_nan, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_max(SEXP xSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rolling_max(x, window, n_threads));
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_max(x, window, min_periods, skip_nan, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -285,26 +289,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_rolling_min_matrix
-NumericMatrix cpp_rolling_min_matrix(NumericMatrix X, int window, int n_threads);
-RcppExport SEXP _fastroll_cpp_rolling_min_matrix(SEXP XSEXP, SEXP windowSEXP, SEXP n_threadsSEXP) {
+NumericMatrix cpp_rolling_min_matrix(NumericMatrix X, int window, int min_periods, bool skip_nan, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_min_matrix(SEXP XSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rolling_min_matrix(X, window, n_threads));
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_min_matrix(X, window, min_periods, skip_nan, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_rolling_max_matrix
-NumericMatrix cpp_rolling_max_matrix(NumericMatrix X, int window, int n_threads);
-RcppExport SEXP _fastroll_cpp_rolling_max_matrix(SEXP XSEXP, SEXP windowSEXP, SEXP n_threadsSEXP) {
+NumericMatrix cpp_rolling_max_matrix(NumericMatrix X, int window, int min_periods, bool skip_nan, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_max_matrix(SEXP XSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rolling_max_matrix(X, window, n_threads));
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_max_matrix(X, window, min_periods, skip_nan, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -354,8 +362,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastroll_cpp_rolling_var", (DL_FUNC) &_fastroll_cpp_rolling_var, 6},
     {"_fastroll_cpp_rolling_std", (DL_FUNC) &_fastroll_cpp_rolling_std, 6},
     {"_fastroll_cpp_rolling_sum", (DL_FUNC) &_fastroll_cpp_rolling_sum, 5},
-    {"_fastroll_cpp_rolling_min", (DL_FUNC) &_fastroll_cpp_rolling_min, 3},
-    {"_fastroll_cpp_rolling_max", (DL_FUNC) &_fastroll_cpp_rolling_max, 3},
+    {"_fastroll_cpp_rolling_min", (DL_FUNC) &_fastroll_cpp_rolling_min, 5},
+    {"_fastroll_cpp_rolling_max", (DL_FUNC) &_fastroll_cpp_rolling_max, 5},
     {"_fastroll_cpp_rolling_regression", (DL_FUNC) &_fastroll_cpp_rolling_regression, 3},
     {"_fastroll_cpp_rolling_regression_xy", (DL_FUNC) &_fastroll_cpp_rolling_regression_xy, 4},
     {"_fastroll_cpp_rolling_multiple_regression", (DL_FUNC) &_fastroll_cpp_rolling_multiple_regression, 4},
@@ -371,8 +379,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastroll_cpp_rolling_mean_matrix", (DL_FUNC) &_fastroll_cpp_rolling_mean_matrix, 4},
     {"_fastroll_cpp_rolling_std_matrix", (DL_FUNC) &_fastroll_cpp_rolling_std_matrix, 5},
     {"_fastroll_cpp_rolling_sum_matrix", (DL_FUNC) &_fastroll_cpp_rolling_sum_matrix, 4},
-    {"_fastroll_cpp_rolling_min_matrix", (DL_FUNC) &_fastroll_cpp_rolling_min_matrix, 3},
-    {"_fastroll_cpp_rolling_max_matrix", (DL_FUNC) &_fastroll_cpp_rolling_max_matrix, 3},
+    {"_fastroll_cpp_rolling_min_matrix", (DL_FUNC) &_fastroll_cpp_rolling_min_matrix, 5},
+    {"_fastroll_cpp_rolling_max_matrix", (DL_FUNC) &_fastroll_cpp_rolling_max_matrix, 5},
     {"_fastroll_cpp_rolling_spearman", (DL_FUNC) &_fastroll_cpp_rolling_spearman, 4},
     {"_fastroll_cpp_set_num_threads", (DL_FUNC) &_fastroll_cpp_set_num_threads, 1},
     {"_fastroll_cpp_get_num_threads", (DL_FUNC) &_fastroll_cpp_get_num_threads, 0},

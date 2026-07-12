@@ -114,11 +114,19 @@ rolling_sum <- function(x, window, min_periods = window, skip_nan = FALSE,
 #' Rolling minimum
 #'
 #' @description Computes the minimum over a sliding window in O(n) total
-#'   time via a monotonic deque.  Any \code{NA}/\code{NaN} inside the
-#'   window yields \code{NA} for that position.
+#'   time via a monotonic deque.  By default any \code{NA}/\code{NaN}
+#'   inside the window yields \code{NA} for that position; with
+#'   \code{skip_nan = TRUE} missing values are ignored instead (the
+#'   behaviour of \code{min(x, na.rm = TRUE)} per window) and
+#'   \code{min_periods} counts only the non-missing values.
 #'
 #' @param x numeric vector.
 #' @param window window length, a positive integer.
+#' @param min_periods minimum number of valid observations required to
+#'   emit a value; positions with fewer get \code{NA}.  Defaults to
+#'   \code{window}.
+#' @param skip_nan if \code{TRUE}, missing values are excluded from the
+#'   window instead of propagating to the output.
 #' @param n_threads OpenMP threads over blocks (AVX2 builds only);
 #'   \code{0L} (default) means single-threaded.
 #'
@@ -126,19 +134,26 @@ rolling_sum <- function(x, window, min_periods = window, skip_nan = FALSE,
 #'
 #' @examples
 #' rolling_min(c(3, 1, 4, 1, 5), window = 3)
+#' rolling_min(c(3, NA, 4, 1, 5), window = 3, min_periods = 1,
+#'             skip_nan = TRUE)
 #'
 #' @seealso \code{\link{rolling_max}}
 #' @export
-rolling_min <- function(x, window, n_threads = 0L) {
-    .check_basic_args(x, window, window)
-    cpp_rolling_min(as.double(x), as.integer(window), as.integer(n_threads))
+rolling_min <- function(x, window, min_periods = window, skip_nan = FALSE,
+                        n_threads = 0L) {
+    .check_basic_args(x, window, min_periods)
+    cpp_rolling_min(as.double(x), as.integer(window),
+                    as.integer(min_periods), isTRUE(skip_nan),
+                    as.integer(n_threads))
 }
 
 #' Rolling maximum
 #'
 #' @description Computes the maximum over a sliding window in O(n) total
-#'   time via a monotonic deque.  Any \code{NA}/\code{NaN} inside the
-#'   window yields \code{NA} for that position.
+#'   time via a monotonic deque.  By default any \code{NA}/\code{NaN}
+#'   inside the window yields \code{NA} for that position; with
+#'   \code{skip_nan = TRUE} missing values are ignored instead and
+#'   \code{min_periods} counts only the non-missing values.
 #'
 #' @inheritParams rolling_min
 #'
@@ -149,9 +164,12 @@ rolling_min <- function(x, window, n_threads = 0L) {
 #'
 #' @seealso \code{\link{rolling_min}}
 #' @export
-rolling_max <- function(x, window, n_threads = 0L) {
-    .check_basic_args(x, window, window)
-    cpp_rolling_max(as.double(x), as.integer(window), as.integer(n_threads))
+rolling_max <- function(x, window, min_periods = window, skip_nan = FALSE,
+                        n_threads = 0L) {
+    .check_basic_args(x, window, min_periods)
+    cpp_rolling_max(as.double(x), as.integer(window),
+                    as.integer(min_periods), isTRUE(skip_nan),
+                    as.integer(n_threads))
 }
 
 #' Rolling simple linear regression on time
@@ -558,11 +576,13 @@ rolling_sum_matrix <- function(X, window, min_periods = window,
 #'
 #' @seealso \code{\link{rolling_min}}
 #' @export
-rolling_min_matrix <- function(X, window, n_threads = 0L) {
+rolling_min_matrix <- function(X, window, min_periods = window,
+                               skip_nan = FALSE, n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
-    .check_basic_args(X[, 1], window, window)
+    .check_basic_args(X[, 1], window, min_periods)
     storage.mode(X) <- "double"
-    cpp_rolling_min_matrix(X, as.integer(window), as.integer(n_threads))
+    cpp_rolling_min_matrix(X, as.integer(window), as.integer(min_periods),
+                           isTRUE(skip_nan), as.integer(n_threads))
 }
 
 #' Column-wise rolling maximum
@@ -576,11 +596,13 @@ rolling_min_matrix <- function(X, window, n_threads = 0L) {
 #'
 #' @seealso \code{\link{rolling_max}}
 #' @export
-rolling_max_matrix <- function(X, window, n_threads = 0L) {
+rolling_max_matrix <- function(X, window, min_periods = window,
+                               skip_nan = FALSE, n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
-    .check_basic_args(X[, 1], window, window)
+    .check_basic_args(X[, 1], window, min_periods)
     storage.mode(X) <- "double"
-    cpp_rolling_max_matrix(X, as.integer(window), as.integer(n_threads))
+    cpp_rolling_max_matrix(X, as.integer(window), as.integer(min_periods),
+                           isTRUE(skip_nan), as.integer(n_threads))
 }
 
 #' Rolling Spearman rank correlation

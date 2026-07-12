@@ -59,18 +59,22 @@ NumericVector cpp_rolling_sum(NumericVector x, int window,
 }
 
 // [[Rcpp::export(rng = false)]]
-NumericVector cpp_rolling_min(NumericVector x, int window, int n_threads) {
+NumericVector cpp_rolling_min(NumericVector x, int window, int min_periods,
+                              bool skip_nan, int n_threads) {
     size_t n = x.size();
     NumericVector out(n);
-    fastwindow::rolling_min(REAL(x), REAL(out), n, (size_t)window, n_threads);
+    fastwindow::rolling_min(REAL(x), REAL(out), n, (size_t)window,
+                            min_periods, skip_nan, n_threads);
     return out;
 }
 
 // [[Rcpp::export(rng = false)]]
-NumericVector cpp_rolling_max(NumericVector x, int window, int n_threads) {
+NumericVector cpp_rolling_max(NumericVector x, int window, int min_periods,
+                              bool skip_nan, int n_threads) {
     size_t n = x.size();
     NumericVector out(n);
-    fastwindow::rolling_max(REAL(x), REAL(out), n, (size_t)window, n_threads);
+    fastwindow::rolling_max(REAL(x), REAL(out), n, (size_t)window,
+                            min_periods, skip_nan, n_threads);
     return out;
 }
 
@@ -248,23 +252,27 @@ NumericMatrix cpp_rolling_sum_matrix(NumericMatrix X, int window,
 
 // [[Rcpp::export(rng = false)]]
 NumericMatrix cpp_rolling_min_matrix(NumericMatrix X, int window,
+                                     int min_periods, bool skip_nan,
                                      int n_threads) {
     size_t n = X.nrow();
     int p = X.ncol();
     NumericMatrix out(n, p);
     fastwindow::rolling_min_matrix(REAL(X), REAL(out), n, p,
-                                   (size_t)window, n_threads);
+                                   (size_t)window, min_periods, skip_nan,
+                                   n_threads);
     return out;
 }
 
 // [[Rcpp::export(rng = false)]]
 NumericMatrix cpp_rolling_max_matrix(NumericMatrix X, int window,
+                                     int min_periods, bool skip_nan,
                                      int n_threads) {
     size_t n = X.nrow();
     int p = X.ncol();
     NumericMatrix out(n, p);
     fastwindow::rolling_max_matrix(REAL(X), REAL(out), n, p,
-                                   (size_t)window, n_threads);
+                                   (size_t)window, min_periods, skip_nan,
+                                   n_threads);
     return out;
 }
 

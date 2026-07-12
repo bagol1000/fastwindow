@@ -112,20 +112,25 @@ def rolling_sum(
     ...
 
 def rolling_min(
-    x: ArrayLike, window: int, n_threads: int = ...,
-    out: NDArray[np.float64] | None = ...
+    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    n_threads: int = ..., out: NDArray[np.float64] | None = ...
 ) -> NDArray[np.float64]:
     """
     Rolling minimum.
 
-    Any NaN inside the window yields NaN for that position.  AVX2 builds
-    use a blocked van Herk algorithm; otherwise a monotonic deque
-    (O(n) total either way).
+    By default any NaN inside the window yields NaN for that position;
+    ``skip_nan=True`` ignores NaN values instead (pandas semantics) and
+    ``min_periods`` counts only the valid observations.  AVX2 builds use
+    a blocked van Herk algorithm; otherwise a monotonic deque (O(n)
+    total either way).
 
     Parameters
     ----------
     x : np.ndarray, shape (n,)
     window : int
+    min_periods : int, optional
+        Defaults to ``window``.
+    skip_nan : bool, default False
 
     Returns
     -------
@@ -134,8 +139,8 @@ def rolling_min(
     ...
 
 def rolling_max(
-    x: ArrayLike, window: int, n_threads: int = ...,
-    out: NDArray[np.float64] | None = ...
+    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    n_threads: int = ..., out: NDArray[np.float64] | None = ...
 ) -> NDArray[np.float64]:
     """
     Rolling maximum; mirror of :func:`rolling_min`.
@@ -144,6 +149,8 @@ def rolling_max(
     ----------
     x : np.ndarray, shape (n,)
     window : int
+    min_periods : int, optional
+    skip_nan : bool, default False
 
     Returns
     -------
@@ -493,7 +500,8 @@ def rolling_sum_2d(
     ...
 
 def rolling_min_2d(
-    X: ArrayLike, window: int, n_threads: int = ...
+    X: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    n_threads: int = ...
 ) -> NDArray[np.float64]:
     """
     Column-wise rolling minimum (OpenMP over columns).
@@ -502,6 +510,8 @@ def rolling_min_2d(
     ----------
     X : np.ndarray, shape (n, p)
     window : int
+    min_periods : int, optional
+    skip_nan : bool, default False
     n_threads : int, default 0
 
     Returns
@@ -511,7 +521,8 @@ def rolling_min_2d(
     ...
 
 def rolling_max_2d(
-    X: ArrayLike, window: int, n_threads: int = ...
+    X: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    n_threads: int = ...
 ) -> NDArray[np.float64]:
     """
     Column-wise rolling maximum (OpenMP over columns).
@@ -520,6 +531,8 @@ def rolling_max_2d(
     ----------
     X : np.ndarray, shape (n, p)
     window : int
+    min_periods : int, optional
+    skip_nan : bool, default False
     n_threads : int, default 0
 
     Returns

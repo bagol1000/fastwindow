@@ -223,20 +223,23 @@ void rolling_sum(const double* src, double* dst, size_t n,
                  int n_threads = 0);
 
 /// Rolling minimum.
-/// @param src    Input array of length n
-/// @param dst    Output array of length n
-/// @param n      Array length
-/// @param window Window length (> 0)
-/// @note Any non-finite value inside the window yields NaN for that
-///       position.  AVX2 builds use the van Herk blocked algorithm for
-///       window ≥ 16; otherwise a monotonic deque.
+/// @param src         Input array of length n
+/// @param dst         Output array of length n
+/// @param n           Array length
+/// @param window      Window length (> 0)
+/// @param min_periods Minimum valid observations required to emit a value
+/// @param skip_nan    If true, non-finite values are excluded from the
+///                    window (pandas semantics); if false any non-finite
+///                    value inside the window yields NaN for that position
+/// @note AVX2 builds use the van Herk blocked algorithm for window ≥ 16
+///       (skip_nan=false); otherwise a monotonic deque.
 void rolling_min(const double* src, double* dst, size_t n, size_t window,
-                 int n_threads = 0);
+                 int min_periods, bool skip_nan, int n_threads = 0);
 
 /// Rolling maximum; mirror of rolling_min.
 /// @copydetails rolling_min
 void rolling_max(const double* src, double* dst, size_t n, size_t window,
-                 int n_threads = 0);
+                 int min_periods, bool skip_nan, int n_threads = 0);
 
 //Simple linear regression kernels
 
@@ -439,9 +442,11 @@ void rolling_std_matrix(const double* X, double* dst, size_t n, int p,
 void rolling_sum_matrix(const double* X, double* dst, size_t n, int p,
                         size_t window, int min_periods, int n_threads);
 void rolling_min_matrix(const double* X, double* dst, size_t n, int p,
-                        size_t window, int n_threads);
+                        size_t window, int min_periods, bool skip_nan,
+                        int n_threads);
 void rolling_max_matrix(const double* X, double* dst, size_t n, int p,
-                        size_t window, int n_threads);
+                        size_t window, int min_periods, bool skip_nan,
+                        int n_threads);
 
 //Spearman rank correlation
 

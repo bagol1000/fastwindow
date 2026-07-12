@@ -8,12 +8,20 @@
 \description{
 High-performance rolling window statistics backed by a shared C++17 core.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/bagol1000/fastwindow}
+  \item Report bugs at \url{https://github.com/bagol1000/fastwindow/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: fastwindow contributors \email{01199218@pw.edu.pl}
+\strong{Maintainer}: bagol1000 \email{01199218@pw.edu.pl}
 
 Authors:
 \itemize{
-  \item fastwindow contributors \email{01199218@pw.edu.pl}
+  \item bagol1000 \email{01199218@pw.edu.pl}
 }
 
 }

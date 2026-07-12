@@ -387,3 +387,70 @@ class TestPythonValidation:
     def test_negative_n_threads_rejected(self):
         with pytest.raises(ValueError, match="n_threads"):
             fw.rolling_mean(np.arange(5.0), window=3, n_threads=-1)
+
+
+#rolling_min / rolling_max: min_periods and skip_nan
+
+class TestMinMaxMinPeriodsSkipNan:
+    """min/max gained min_periods and skip_nan (pandas-compatible).
+
+    window=5 exercises the monotonic-deque path, window=64 the blocked
+    AVX2 path (>= 16) on builds where it is active.
+    """
+
+    def _nan_data(self, n=400, seed=3):
+        rng = np.random.default_rng(seed)
+        x = rng.standard_normal(n)
+        idx = rng.choice(n, n // 20, replace=False)
+        x[idx] = np.nan
+        return x
+
+    @pytest.mark.parametrize("window", [5, 64])
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_min_periods_clean_vs_pandas(self, window, op):
+        rng = np.random.default_rng(11)
+        x = rng.standard_normal(300)
+        out = getattr(fw, f"rolling_{op}")(x, window=window, min_periods=3)
+        exp = getattr(pd.Series(x).rolling(window, min_periods=3),
+                      op)().to_numpy()
+        assert_allclose_nan(out, exp, label=f"{op} min_periods clean w={window}")
+
+    @pytest.mark.parametrize("window", [5, 64])
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_skip_nan_vs_pandas(self, window, op):
+        #pandas rolling min/max skip NaN by default => skip_nan=True mirror
+        x = self._nan_data()
+        out = getattr(fw, f"rolling_{op}")(x, window=window,
+                                           min_periods=2, skip_nan=True)
+        exp = getattr(pd.Series(x).rolling(window, min_periods=2),
+                      op)().to_numpy()
+        assert_allclose_nan(out, exp, label=f"{op} skip_nan w={window}")
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_default_nan_propagation_unchanged(self, op):
+        x = np.array([1.0, 2.0, NaN, 4.0, 5.0, 6.0])
+        out = getattr(fw, f"rolling_{op}")(x, window=3)
+        #NaN inside the window propagates: positions 2,3,4 are NaN
+        assert np.isnan(out[:5]).all()
+        assert out[5] == (4.0 if op == "min" else 6.0)
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_all_nan_window_skip_nan(self, op):
+        x = np.array([NaN, NaN, NaN, 1.0, 2.0])
+        out = getattr(fw, f"rolling_{op}")(x, window=2, min_periods=1,
+                                           skip_nan=True)
+        exp = np.array([NaN, NaN, NaN, 1.0, 1.0 if op == "min" else 2.0])
+        assert_allclose_nan(out, exp, label=f"{op} all-NaN window")
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_2d_min_periods_skip_nan(self, op):
+        x = self._nan_data(200)
+        X = np.column_stack([x, -x])
+        out = getattr(fw, f"rolling_{op}_2d")(X, window=8, min_periods=2,
+                                              skip_nan=True)
+        exp0 = getattr(fw, f"rolling_{op}")(x, window=8, min_periods=2,
+                                            skip_nan=True)
+        exp1 = getattr(fw, f"rolling_{op}")(-x, window=8, min_periods=2,
+                                            skip_nan=True)
+        assert_allclose_nan(out[:, 0], exp0, label=f"{op}_2d col0")
+        assert_allclose_nan(out[:, 1], exp1, label=f"{op}_2d col1")

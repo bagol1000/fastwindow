@@ -168,33 +168,35 @@ static py::array_t<double> py_rolling_sum(
 }
 
 static py::array_t<double> py_rolling_min(
-        const py::array& x, size_t window, int n_threads,
-        const py::object& out) {
+        const py::array& x, size_t window, int min_periods, bool skip_nan,
+        int n_threads, const py::object& out) {
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
+    int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
         py::gil_scoped_release release;
         fastwindow::rolling_min(src.data(), dst.mutable_data(), n, window,
-                                n_threads);
+                                mp, skip_nan, n_threads);
     }
     return dst;
 }
 
 static py::array_t<double> py_rolling_max(
-        const py::array& x, size_t window, int n_threads,
-        const py::object& out) {
+        const py::array& x, size_t window, int min_periods, bool skip_nan,
+        int n_threads, const py::object& out) {
     check_window(window);
     auto src = ensure_contiguous(x);
     size_t n = static_cast<size_t>(src.shape(0));
     auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
+    int mp = resolve_min_periods(min_periods, window);
     check_n_threads(n_threads);
     {
         py::gil_scoped_release release;
         fastwindow::rolling_max(src.data(), dst.mutable_data(), n, window,
-                                n_threads);
+                                mp, skip_nan, n_threads);
     }
     return dst;
 }
@@ -573,20 +575,26 @@ static py::array_t<double> py_rolling_sum_2d(
 }
 
 static py::array_t<double> py_rolling_min_2d(
-        const py::array& X, size_t window, int n_threads) {
+        const py::array& X, size_t window, int min_periods, bool skip_nan,
+        int n_threads) {
     check_window(window);
     check_n_threads(n_threads);
+    int mp = resolve_min_periods(min_periods, window);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
-        fastwindow::rolling_min_matrix(src, dst, n, p, window, n_threads);
+        fastwindow::rolling_min_matrix(src, dst, n, p, window, mp, skip_nan,
+                                       n_threads);
     });
 }
 
 static py::array_t<double> py_rolling_max_2d(
-        const py::array& X, size_t window, int n_threads) {
+        const py::array& X, size_t window, int min_periods, bool skip_nan,
+        int n_threads) {
     check_window(window);
     check_n_threads(n_threads);
+    int mp = resolve_min_periods(min_periods, window);
     return run_2d(X, [=](const double* src, double* dst, size_t n, int p) {
-        fastwindow::rolling_max_matrix(src, dst, n, p, window, n_threads);
+        fastwindow::rolling_max_matrix(src, dst, n, p, window, mp, skip_nan,
+                                       n_threads);
     });
 }
 
@@ -674,15 +682,21 @@ PYBIND11_MODULE(_core, m) {
 
     m.def("rolling_min", &py_rolling_min,
           py::arg("x"), py::arg("window"),
-          py::arg("n_threads") = 0,
-          py::arg("out")       = py::none(),
-          "Rolling minimum (NaN in window propagates to output).");
+          py::arg("min_periods") = -1,
+          py::arg("skip_nan")    = false,
+          py::arg("n_threads")   = 0,
+          py::arg("out")         = py::none(),
+          "Rolling minimum.  skip_nan=True ignores NaN values "
+          "(pandas semantics); default propagates NaN to the output.");
 
     m.def("rolling_max", &py_rolling_max,
           py::arg("x"), py::arg("window"),
-          py::arg("n_threads") = 0,
-          py::arg("out")       = py::none(),
-          "Rolling maximum (NaN in window propagates to output).");
+          py::arg("min_periods") = -1,
+          py::arg("skip_nan")    = false,
+          py::arg("n_threads")   = 0,
+          py::arg("out")         = py::none(),
+          "Rolling maximum.  skip_nan=True ignores NaN values "
+          "(pandas semantics); default propagates NaN to the output.");
 
     m.def("rolling_regression", &py_rolling_regression,
           py::arg("y"), py::arg("window"),
@@ -777,10 +791,14 @@ PYBIND11_MODULE(_core, m) {
           py::arg("min_periods") = -1, py::arg("n_threads") = 0,
           "Column-wise rolling sum (OpenMP).");
     m.def("rolling_min_2d", &py_rolling_min_2d,
-          py::arg("X"), py::arg("window"), py::arg("n_threads") = 0,
+          py::arg("X"), py::arg("window"),
+          py::arg("min_periods") = -1, py::arg("skip_nan") = false,
+          py::arg("n_threads") = 0,
           "Column-wise rolling minimum (OpenMP).");
     m.def("rolling_max_2d", &py_rolling_max_2d,
-          py::arg("X"), py::arg("window"), py::arg("n_threads") = 0,
+          py::arg("X"), py::arg("window"),
+          py::arg("min_periods") = -1, py::arg("skip_nan") = false,
+          py::arg("n_threads") = 0,
           "Column-wise rolling maximum (OpenMP).");
 
     m.def("rolling_spearman", &py_rolling_spearman,

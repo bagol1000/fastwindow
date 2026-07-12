@@ -4,12 +4,21 @@
 \alias{rolling_min_matrix}
 \title{Column-wise rolling minimum}
 \usage{
-rolling_min_matrix(X, window, n_threads = 0L)
+rolling_min_matrix(
+  X,
+  window,
+  min_periods = window,
+  skip_nan = FALSE,
+  n_threads = 0L
+)
 }
 \arguments{
 \item{X}{numeric matrix (n rows, p columns).}
 
 \item{window}{window length, a positive integer.}
+
+\item{min_periods}{minimum number of observations; defaults to
+\code{window}.}
 
 \item{n_threads}{OpenMP thread count; \code{0L} uses all available.}
 }

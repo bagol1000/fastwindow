@@ -57,25 +57,29 @@ void rolling_sum_matrix(const double* X, double* dst, size_t n, int p,
 }
 
 void rolling_min_matrix(const double* X, double* dst, size_t n, int p,
-                        size_t window, int n_threads) {
+                        size_t window, int min_periods, bool skip_nan,
+                        int n_threads) {
     const int nt = mat_threads(n_threads);
     (void)nt;
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(nt)
 #endif
     for (int c = 0; c < p; c++)
-        rolling_min(X + (size_t)c * n, dst + (size_t)c * n, n, window);
+        rolling_min(X + (size_t)c * n, dst + (size_t)c * n, n, window,
+                    min_periods, skip_nan);
 }
 
 void rolling_max_matrix(const double* X, double* dst, size_t n, int p,
-                        size_t window, int n_threads) {
+                        size_t window, int min_periods, bool skip_nan,
+                        int n_threads) {
     const int nt = mat_threads(n_threads);
     (void)nt;
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(nt)
 #endif
     for (int c = 0; c < p; c++)
-        rolling_max(X + (size_t)c * n, dst + (size_t)c * n, n, window);
+        rolling_max(X + (size_t)c * n, dst + (size_t)c * n, n, window,
+                    min_periods, skip_nan);
 }
 
 } //namespace fastwindow

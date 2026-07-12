@@ -498,9 +498,26 @@ static int blk_threads(int n_threads) {
 template <bool MIN>
 static void run_minmax_blocked(const double* FW_RESTRICT x,
                                double* FW_RESTRICT dst,
-                               size_t n, size_t w, int n_threads) {
+                               size_t n, size_t w, int min_periods,
+                               int n_threads) {
     const double QNAN = std::numeric_limits<double>::quiet_NaN();
-    for (size_t i = 0; i + 1 < w && i < n; i++) dst[i] = QNAN;
+    const double WSENT = MIN ?  std::numeric_limits<double>::infinity()
+                             : -std::numeric_limits<double>::infinity();
+    {   //scalar warmup: growing window, positions 0 .. w-2 (emits partial
+        //results when min_periods < window, matching the sum/var kernels)
+        double acc = WSENT;
+        bool nanP = false;
+        size_t lim = std::min(n, w - 1);
+        for (size_t i = 0; i < lim; i++) {
+            double xv = x[i];
+            bool bad = !fw_isfinite(xv);
+            nanP |= bad;
+            acc = sop<MIN>(acc, bad ? WSENT : xv);
+            bool emit = !nanP && (int)(i + 1) >= min_periods;
+            dst[i] = emit ? acc : QNAN;
+        }
+        if (n < w) return;
+    }
     const size_t nblocks = (n + w - 1) / w;
     const int nt = blk_threads(n_threads);
     if (nt > 1 && nblocks >= (size_t)(2 * nt)) {
@@ -854,85 +871,88 @@ static void run_var_blocked(const double* FW_RESTRICT x,
 } //anonymous namespace
 #endif //FW_SIMD
 
-void rolling_min(const double* src, double* dst, size_t n, size_t window,
-                 int n_threads) {
-    (void)n_threads;
-#if FW_SIMD
-    if (cpu_has_avx2() && window >= 16 && n >= window) {
-        run_minmax_blocked<true>(src, dst, n, window, n_threads);
-        return;
-    }
-#endif
-    for (size_t i = 0; i < n; i++) dst[i] = DNAN;
-    if (n == 0 || window == 0) return;
-
+//Monotonic-deque runner shared by min and max.  Emission rules mirror the
+//sum/var kernels: with skip_nan the count of finite values gates
+//min_periods (pandas semantics); without it any NaN in the window forces
+//NaN output and min_periods only enables warmup emission.
+template <bool MIN, bool SKIP>
+static void run_minmax_deque(const double* src, double* dst, size_t n,
+                             size_t window, int min_periods) {
     MonotonicDeque dq;
-    size_t nan_count = 0;
+    size_t nan_count = 0;   //non-finite values currently inside the window
+    size_t valid     = 0;   //finite values currently inside the window
 
     for (size_t i = 0; i < n; i++) {
-        //NaN bookkeeping for the departing element
         if (i >= window) {
             if (!fw_isfinite(src[i - window])) nan_count--;
+            else                               valid--;
         }
 
         if (!fw_isfinite(src[i])) {
             //NaN / Inf: don't add to deque, bump nan counter
             nan_count++;
         } else {
-            //Maintain ascending deque (front = current min)
-            while (!dq.empty() && src[dq.idx.back()] >= src[i])
-                dq.idx.pop_back();
+            valid++;
+            if (MIN) {
+                //ascending deque (front = current min)
+                while (!dq.empty() && src[dq.idx.back()] >= src[i])
+                    dq.idx.pop_back();
+            } else {
+                //descending deque (front = current max)
+                while (!dq.empty() && src[dq.idx.back()] <= src[i])
+                    dq.idx.pop_back();
+            }
             dq.idx.push_back(i);
         }
 
         while (!dq.empty() && dq.front() + window <= i)
             dq.idx.pop_front();
 
-        if (i + 1 >= window) {
-            if (nan_count == 0 && !dq.empty())
-                dst[i] = src[dq.front()];
-            //else: NaN in window → dst[i] stays NaN
-        }
+        size_t m = std::min(i + 1, window);
+        bool emit = SKIP ? ((int)valid >= min_periods && valid > 0)
+                         : (nan_count == 0 && (int)m >= min_periods);
+        if (emit && !dq.empty())
+            dst[i] = src[dq.front()];
     }
 }
 
-void rolling_max(const double* src, double* dst, size_t n, size_t window,
-                 int n_threads) {
+void rolling_min(const double* src, double* dst, size_t n, size_t window,
+                 int min_periods, bool skip_nan, int n_threads) {
     (void)n_threads;
 #if FW_SIMD
-    if (cpu_has_avx2() && window >= 16 && n >= window) {
-        run_minmax_blocked<false>(src, dst, n, window, n_threads);
+    if (cpu_has_avx2() && !skip_nan && window >= 16 && n >= window &&
+        min_periods <= (int)window) {
+        run_minmax_blocked<true>(src, dst, n, window, min_periods, n_threads);
         return;
     }
 #endif
     for (size_t i = 0; i < n; i++) dst[i] = DNAN;
     if (n == 0 || window == 0) return;
 
-    MonotonicDeque dq;
-    size_t nan_count = 0;
+    if (skip_nan) run_minmax_deque<true, true >(src, dst, n, window,
+                                                min_periods);
+    else          run_minmax_deque<true, false>(src, dst, n, window,
+                                                min_periods);
+}
 
-    for (size_t i = 0; i < n; i++) {
-        if (i >= window) {
-            if (!fw_isfinite(src[i - window])) nan_count--;
-        }
-
-        if (!fw_isfinite(src[i])) {
-            nan_count++;
-        } else {
-            //Maintain descending deque (front = current max)
-            while (!dq.empty() && src[dq.idx.back()] <= src[i])
-                dq.idx.pop_back();
-            dq.idx.push_back(i);
-        }
-
-        while (!dq.empty() && dq.front() + window <= i)
-            dq.idx.pop_front();
-
-        if (i + 1 >= window) {
-            if (nan_count == 0 && !dq.empty())
-                dst[i] = src[dq.front()];
-        }
+void rolling_max(const double* src, double* dst, size_t n, size_t window,
+                 int min_periods, bool skip_nan, int n_threads) {
+    (void)n_threads;
+#if FW_SIMD
+    if (cpu_has_avx2() && !skip_nan && window >= 16 && n >= window &&
+        min_periods <= (int)window) {
+        run_minmax_blocked<false>(src, dst, n, window, min_periods,
+                                  n_threads);
+        return;
     }
+#endif
+    for (size_t i = 0; i < n; i++) dst[i] = DNAN;
+    if (n == 0 || window == 0) return;
+
+    if (skip_nan) run_minmax_deque<false, true >(src, dst, n, window,
+                                                 min_periods);
+    else          run_minmax_deque<false, false>(src, dst, n, window,
+                                                 min_periods);
 }
 
 } //namespace fastwindow

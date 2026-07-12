@@ -163,6 +163,37 @@ NumericVector cpp_rolling_corr_matrix(NumericMatrix X, int window,
 }
 
 // [[Rcpp::export(rng = false)]]
+NumericVector cpp_rolling_skew(NumericVector x, int window,
+                               int min_periods, bool skip_nan) {
+    size_t n = x.size();
+    NumericVector out(n);
+    fastwindow::rolling_skew(REAL(x), REAL(out), n, (size_t)window,
+                             min_periods, skip_nan);
+    return out;
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector cpp_rolling_kurt(NumericVector x, int window,
+                               int min_periods, bool skip_nan) {
+    size_t n = x.size();
+    NumericVector out(n);
+    fastwindow::rolling_kurt(REAL(x), REAL(out), n, (size_t)window,
+                             min_periods, skip_nan);
+    return out;
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector cpp_rolling_zscore(NumericVector x, int window,
+                                 int min_periods, int ddof, bool skip_nan,
+                                 int n_threads) {
+    size_t n = x.size();
+    NumericVector out(n);
+    fastwindow::rolling_zscore(REAL(x), REAL(out), n, (size_t)window,
+                               min_periods, ddof == 1, skip_nan, n_threads);
+    return out;
+}
+
+// [[Rcpp::export(rng = false)]]
 NumericVector cpp_rolling_quantile(NumericVector x, int window, double q,
                                    int min_periods, bool exact) {
     size_t n = x.size();

@@ -378,6 +378,41 @@ void corr_matrix_expand(
     const double* tri, double* out,
     size_t n, int p, bool r_layout, int n_threads);
 
+//Higher moments and z-score
+
+/// Rolling skewness, bias-corrected (matches pandas .rolling().skew() and
+/// scipy.stats.skew(bias=False)).  Requires ≥ 3 valid observations;
+/// zero-variance windows give NaN.
+/// @param src         Input array of length n
+/// @param dst         Output array of length n
+/// @param n           Array length
+/// @param window      Window length (> 0)
+/// @param min_periods Minimum valid observations required to emit a value
+/// @param skip_nan    If true, non-finite values are excluded; else NaN out
+void rolling_skew(const double* src, double* dst, size_t n, size_t window,
+                  int min_periods, bool skip_nan);
+
+/// Rolling EXCESS kurtosis, bias-corrected (matches pandas
+/// .rolling().kurt() and scipy.stats.kurtosis(bias=False)).  Requires ≥ 4
+/// valid observations; zero-variance windows give NaN.
+/// @copydetails rolling_skew
+void rolling_kurt(const double* src, double* dst, size_t n, size_t window,
+                  int min_periods, bool skip_nan);
+
+/// Rolling z-score: (x[i] − window mean) / window stddev, NaN when the
+/// input is non-finite, the window doesn't emit, or the stddev is 0.
+/// @param src         Input array of length n
+/// @param dst         Output array of length n
+/// @param n           Array length
+/// @param window      Window length (> 0)
+/// @param min_periods Minimum valid observations required to emit a value
+/// @param ddof1       true → sample stddev (n-1), false → population
+/// @param skip_nan    If true, non-finite values are excluded; else NaN out
+/// @param n_threads   Forwarded to the mean/std kernels (AVX2 builds)
+void rolling_zscore(const double* src, double* dst, size_t n, size_t window,
+                    int min_periods, bool ddof1, bool skip_nan,
+                    int n_threads = 0);
+
 //Rolling quantile
 
 /// Rolling quantile.

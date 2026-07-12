@@ -419,6 +419,60 @@ static py::array_t<double> py_corr_matrix_pairs(
     return out;
 }
 
+//Higher moments and z-score
+
+static py::array_t<double> py_rolling_skew(
+        const py::array& x, size_t window,
+        int min_periods, bool skip_nan, const py::object& out) {
+    check_window(window);
+    auto src = ensure_contiguous(x);
+    size_t n = static_cast<size_t>(src.shape(0));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_skew(src.data(), dst.mutable_data(), n, window,
+                                 mp, skip_nan);
+    }
+    return dst;
+}
+
+static py::array_t<double> py_rolling_kurt(
+        const py::array& x, size_t window,
+        int min_periods, bool skip_nan, const py::object& out) {
+    check_window(window);
+    auto src = ensure_contiguous(x);
+    size_t n = static_cast<size_t>(src.shape(0));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
+    int mp = resolve_min_periods(min_periods, window);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_kurt(src.data(), dst.mutable_data(), n, window,
+                                 mp, skip_nan);
+    }
+    return dst;
+}
+
+static py::array_t<double> py_rolling_zscore(
+        const py::array& x, size_t window,
+        int min_periods, int ddof, bool skip_nan, int n_threads,
+        const py::object& out) {
+    check_window(window);
+    if (ddof < 0 || ddof > 1)
+        throw std::invalid_argument("ddof must be 0 or 1");
+    auto src = ensure_contiguous(x);
+    size_t n = static_cast<size_t>(src.shape(0));
+    auto dst = resolve_out(out, static_cast<py::ssize_t>(n), src.data());
+    int mp = resolve_min_periods(min_periods, window);
+    check_n_threads(n_threads);
+    {
+        py::gil_scoped_release release;
+        fastwindow::rolling_zscore(src.data(), dst.mutable_data(), n, window,
+                                   mp, ddof == 1, skip_nan, n_threads);
+    }
+    return dst;
+}
+
 //Quantile, expanding windows, 2-D dispatch, Spearman
 
 static py::array_t<double> py_rolling_quantile(
@@ -747,6 +801,32 @@ PYBIND11_MODULE(_core, m) {
           py::arg("min_periods") = -1,
           py::arg("n_threads")   = 0,
           "Internal: upper-triangle pair series without matrix expansion.");
+
+    m.def("rolling_skew", &py_rolling_skew,
+          py::arg("x"), py::arg("window"),
+          py::arg("min_periods") = -1,
+          py::arg("skip_nan")    = false,
+          py::arg("out")         = py::none(),
+          "Rolling skewness, bias-corrected (matches pandas "
+          ".rolling().skew()).  Requires >= 3 valid observations.");
+
+    m.def("rolling_kurt", &py_rolling_kurt,
+          py::arg("x"), py::arg("window"),
+          py::arg("min_periods") = -1,
+          py::arg("skip_nan")    = false,
+          py::arg("out")         = py::none(),
+          "Rolling excess kurtosis, bias-corrected (matches pandas "
+          ".rolling().kurt()).  Requires >= 4 valid observations.");
+
+    m.def("rolling_zscore", &py_rolling_zscore,
+          py::arg("x"), py::arg("window"),
+          py::arg("min_periods") = -1,
+          py::arg("ddof")        = 1,
+          py::arg("skip_nan")    = false,
+          py::arg("n_threads")   = 0,
+          py::arg("out")         = py::none(),
+          "Rolling z-score: (x - rolling mean) / rolling std.  NaN where "
+          "the input is NaN or the window stddev is zero.");
 
     m.def("rolling_quantile", &py_rolling_quantile,
           py::arg("x"), py::arg("window"),

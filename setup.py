@@ -82,6 +82,7 @@ src_files = [
     os.path.join("src", "rolling_quantile.cpp"),
     os.path.join("src", "expanding.cpp"),
     os.path.join("src", "rolling_matrix.cpp"),
+    os.path.join("src", "rolling_moments.cpp"),
     os.path.join("src", "rolling_spearman.cpp"),
     os.path.join("src", "bindings_python.cpp"),
 ]

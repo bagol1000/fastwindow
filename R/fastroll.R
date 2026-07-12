@@ -401,6 +401,87 @@ rolling_quantile <- function(x, window, q = 0.5, min_periods = window,
                          as.integer(min_periods), isTRUE(exact))
 }
 
+#' Rolling skewness
+#'
+#' @description Bias-corrected rolling skewness (the convention of
+#'   \code{pandas .rolling().skew()} and
+#'   \code{scipy.stats.skew(bias = FALSE)}).  Requires at least 3 valid
+#'   observations; zero-variance windows give \code{NA}.  Computed from
+#'   shifted power sums re-anchored to the window mean every 4096 steps,
+#'   so large mean offsets do not lose precision.
+#'
+#' @param x numeric vector.
+#' @param window window length, a positive integer.
+#' @param min_periods minimum number of valid observations required to
+#'   emit a value.  Defaults to \code{window}.
+#' @param skip_nan if \code{TRUE}, missing values are excluded from the
+#'   window instead of propagating to the output.
+#'
+#' @return A numeric vector of the same length as \code{x}.
+#'
+#' @examples
+#' rolling_skew(rnorm(100), window = 20)
+#'
+#' @seealso \code{\link{rolling_kurt}}, \code{\link{rolling_zscore}}
+#' @export
+rolling_skew <- function(x, window, min_periods = window,
+                         skip_nan = FALSE) {
+    .check_basic_args(x, window, min_periods)
+    cpp_rolling_skew(as.double(x), as.integer(window),
+                     as.integer(min_periods), isTRUE(skip_nan))
+}
+
+#' Rolling excess kurtosis
+#'
+#' @description Bias-corrected rolling excess kurtosis (the convention of
+#'   \code{pandas .rolling().kurt()} and
+#'   \code{scipy.stats.kurtosis(bias = FALSE)}).  Requires at least 4
+#'   valid observations; zero-variance windows give \code{NA}.
+#'
+#' @inheritParams rolling_skew
+#'
+#' @return A numeric vector of the same length as \code{x}.
+#'
+#' @examples
+#' rolling_kurt(rnorm(100), window = 20)
+#'
+#' @seealso \code{\link{rolling_skew}}
+#' @export
+rolling_kurt <- function(x, window, min_periods = window,
+                         skip_nan = FALSE) {
+    .check_basic_args(x, window, min_periods)
+    cpp_rolling_kurt(as.double(x), as.integer(window),
+                     as.integer(min_periods), isTRUE(skip_nan))
+}
+
+#' Rolling z-score
+#'
+#' @description \code{(x - rolling mean) / rolling sd}, with \code{NA}
+#'   where the input is missing, the window does not emit (see
+#'   \code{min_periods}), or the window standard deviation is zero.
+#'
+#' @inheritParams rolling_skew
+#' @param ddof \code{1L} for the sample standard deviation (n-1
+#'   denominator, default), \code{0L} for population.
+#' @param n_threads OpenMP threads forwarded to the mean/std kernels
+#'   (AVX2 builds only); \code{0L} (default) means single-threaded.
+#'
+#' @return A numeric vector of the same length as \code{x}.
+#'
+#' @examples
+#' rolling_zscore(rnorm(100), window = 20)
+#'
+#' @seealso \code{\link{rolling_mean}}, \code{\link{rolling_std}}
+#' @export
+rolling_zscore <- function(x, window, min_periods = window, ddof = 1L,
+                           skip_nan = FALSE, n_threads = 0L) {
+    .check_basic_args(x, window, min_periods)
+    if (!ddof %in% c(0L, 1L)) stop("`ddof` must be 0 or 1")
+    cpp_rolling_zscore(as.double(x), as.integer(window),
+                       as.integer(min_periods), as.integer(ddof),
+                       isTRUE(skip_nan), as.integer(n_threads))
+}
+
 #' Expanding mean
 #'
 #' @description Mean over a growing window (from the first observation to

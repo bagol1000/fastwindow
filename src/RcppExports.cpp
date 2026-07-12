@@ -177,6 +177,47 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_rolling_skew
+NumericVector cpp_rolling_skew(NumericVector x, int window, int min_periods, bool skip_nan);
+RcppExport SEXP _fastroll_cpp_rolling_skew(SEXP xSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_skew(x, window, min_periods, skip_nan));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_rolling_kurt
+NumericVector cpp_rolling_kurt(NumericVector x, int window, int min_periods, bool skip_nan);
+RcppExport SEXP _fastroll_cpp_rolling_kurt(SEXP xSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP skip_nanSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_kurt(x, window, min_periods, skip_nan));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_rolling_zscore
+NumericVector cpp_rolling_zscore(NumericVector x, int window, int min_periods, int ddof, bool skip_nan, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_zscore(SEXP xSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP ddofSEXP, SEXP skip_nanSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< int >::type ddof(ddofSEXP);
+    Rcpp::traits::input_parameter< bool >::type skip_nan(skip_nanSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_zscore(x, window, min_periods, ddof, skip_nan, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_rolling_quantile
 NumericVector cpp_rolling_quantile(NumericVector x, int window, double q, int min_periods, bool exact);
 RcppExport SEXP _fastroll_cpp_rolling_quantile(SEXP xSEXP, SEXP windowSEXP, SEXP qSEXP, SEXP min_periodsSEXP, SEXP exactSEXP) {
@@ -370,6 +411,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastroll_cpp_rolling_corr", (DL_FUNC) &_fastroll_cpp_rolling_corr, 6},
     {"_fastroll_cpp_rolling_cov", (DL_FUNC) &_fastroll_cpp_rolling_cov, 6},
     {"_fastroll_cpp_rolling_corr_matrix", (DL_FUNC) &_fastroll_cpp_rolling_corr_matrix, 4},
+    {"_fastroll_cpp_rolling_skew", (DL_FUNC) &_fastroll_cpp_rolling_skew, 4},
+    {"_fastroll_cpp_rolling_kurt", (DL_FUNC) &_fastroll_cpp_rolling_kurt, 4},
+    {"_fastroll_cpp_rolling_zscore", (DL_FUNC) &_fastroll_cpp_rolling_zscore, 6},
     {"_fastroll_cpp_rolling_quantile", (DL_FUNC) &_fastroll_cpp_rolling_quantile, 5},
     {"_fastroll_cpp_expanding_mean", (DL_FUNC) &_fastroll_cpp_expanding_mean, 2},
     {"_fastroll_cpp_expanding_var", (DL_FUNC) &_fastroll_cpp_expanding_var, 3},

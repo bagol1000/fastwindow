@@ -299,6 +299,82 @@ def rolling_corr_matrix(
     """
     ...
 
+def rolling_skew(
+    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    out: NDArray[np.float64] | None = ...
+) -> NDArray[np.float64]:
+    """
+    Rolling skewness, bias-corrected.
+
+    Matches ``pandas.Series.rolling(window).skew()`` and
+    ``scipy.stats.skew(bias=False)``.  Requires at least 3 valid
+    observations; zero-variance windows give NaN.  Internally uses
+    shifted power sums re-anchored to the window mean every 4096 steps,
+    so large mean offsets do not lose precision.
+
+    Parameters
+    ----------
+    x : np.ndarray, shape (n,)
+    window : int
+    min_periods : int, optional
+        Defaults to ``window``.
+    skip_nan : bool, default False
+
+    Returns
+    -------
+    np.ndarray, shape (n,)
+    """
+    ...
+
+def rolling_kurt(
+    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    out: NDArray[np.float64] | None = ...
+) -> NDArray[np.float64]:
+    """
+    Rolling excess kurtosis, bias-corrected.
+
+    Matches ``pandas.Series.rolling(window).kurt()`` and
+    ``scipy.stats.kurtosis(bias=False)``.  Requires at least 4 valid
+    observations; zero-variance windows give NaN.
+
+    Parameters
+    ----------
+    x : np.ndarray, shape (n,)
+    window : int
+    min_periods : int, optional
+    skip_nan : bool, default False
+
+    Returns
+    -------
+    np.ndarray, shape (n,)
+    """
+    ...
+
+def rolling_zscore(
+    x: ArrayLike, window: int, min_periods: int = ..., ddof: int = ...,
+    skip_nan: bool = ..., n_threads: int = ...,
+    out: NDArray[np.float64] | None = ...
+) -> NDArray[np.float64]:
+    """
+    Rolling z-score: ``(x - rolling mean) / rolling std``.
+
+    NaN where the input is NaN, the window does not emit (see
+    ``min_periods``), or the window standard deviation is zero.
+
+    Parameters
+    ----------
+    x : np.ndarray, shape (n,)
+    window : int
+    min_periods : int, optional
+    ddof : int, default 1
+    skip_nan : bool, default False
+
+    Returns
+    -------
+    np.ndarray, shape (n,)
+    """
+    ...
+
 def rolling_quantile(
     x: ArrayLike, window: int, q: float = ..., min_periods: int = ...,
     exact: bool = ..., out: NDArray[np.float64] | None = ...

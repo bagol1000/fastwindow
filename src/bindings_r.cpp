@@ -298,9 +298,5 @@ int cpp_get_num_threads() {
 
 // [[Rcpp::export(rng = false)]]
 bool cpp_has_avx2() {
-#if FW_SIMD
-    return true;
-#else
-    return false;
-#endif
+    return FW_SIMD && fastwindow::cpu_has_avx2();
 }

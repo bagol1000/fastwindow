@@ -612,11 +612,7 @@ static py::array_t<double> py_rolling_spearman(
 //Module info helpers
 
 static bool py_has_avx2() {
-#if FW_SIMD
-    return true;
-#else
-    return false;
-#endif
+    return FW_SIMD && fastwindow::cpu_has_avx2();
 }
 
 static void py_set_num_threads(int n) {
@@ -800,6 +796,8 @@ PYBIND11_MODULE(_core, m) {
           "Return the current default OpenMP thread count.");
 
     m.def("has_avx2", &py_has_avx2,
-          "Return True if the extension was compiled with AVX2 support.");
+          "Return True if the AVX2 kernel paths are active on this CPU "
+          "(selected at runtime; False on non-x86-64 builds or when the "
+          "CPU/OS lacks AVX2+FMA support).");
 }
 #endif  //FASTWINDOW_PYTHON

@@ -12,6 +12,7 @@ namespace simd {
 
 /// Forward inclusive additive scan of 4 lanes; carry accumulates across
 /// calls (broadcast of the highest lane).
+FW_TARGET_AVX2
 inline __m256d scan_fwd_add(__m256d v, __m256d& carry) {
     const __m256d z = _mm256_setzero_pd();
     __m256d t = _mm256_add_pd(v, _mm256_blend_pd(
@@ -25,6 +26,7 @@ inline __m256d scan_fwd_add(__m256d v, __m256d& carry) {
 
 /// Backward (suffix) inclusive additive scan of 4 lanes; carry is the
 /// broadcast of the lowest lane.
+FW_TARGET_AVX2
 inline __m256d scan_bwd_add(__m256d v, __m256d& carry) {
     const __m256d z = _mm256_setzero_pd();
     __m256d t = _mm256_add_pd(v, _mm256_blend_pd(
@@ -38,6 +40,7 @@ inline __m256d scan_bwd_add(__m256d v, __m256d& carry) {
 
 /// Lane-mask of non-finite entries: |v| >= inf, with NaN caught by the
 /// unordered comparison (NLT_UQ is true for NaN and ±inf).
+FW_TARGET_AVX2
 inline __m256d bad_lanes(__m256d v) {
     const __m256d absmask = _mm256_castsi256_pd(
         _mm256_set1_epi64x(0x7FFFFFFFFFFFFFFFLL));

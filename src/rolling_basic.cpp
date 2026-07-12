@@ -205,7 +205,8 @@ void rolling_mean(const double* src, double* dst, size_t n,
         return;
     }
 #if FW_SIMD
-    if (!skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_sum_blocked(src, dst, n, window, min_periods,
                         /*mean_div=*/true, n_threads);
         return;
@@ -222,7 +223,8 @@ void rolling_var(const double* src, double* dst, size_t n,
                  int n_threads) {
     (void)n_threads;
 #if FW_SIMD
-    if (n > 0 && !skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && n > 0 && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_var_blocked(src, dst, n, window, min_periods, ddof1,
                         /*do_sqrt=*/false, n_threads);
         return;
@@ -290,7 +292,8 @@ void rolling_std(const double* src, double* dst, size_t n,
                  int n_threads) {
     (void)n_threads;
 #if FW_SIMD
-    if (n > 0 && !skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && n > 0 && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_var_blocked(src, dst, n, window, min_periods, ddof1,
                         /*do_sqrt=*/true, n_threads);
         return;
@@ -313,7 +316,8 @@ void rolling_sum(const double* src, double* dst, size_t n,
         return;
     }
 #if FW_SIMD
-    if (!skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_sum_blocked(src, dst, n, window, min_periods,
                         /*mean_div=*/false, n_threads);
         return;
@@ -339,6 +343,7 @@ void rolling_sum(const double* src, double* dst, size_t n,
 namespace {
 
 template <bool MIN>
+FW_TARGET_AVX2
 static inline __m256d vop(__m256d a, __m256d b) {
     return MIN ? _mm256_min_pd(a, b) : _mm256_max_pd(a, b);
 }
@@ -354,6 +359,7 @@ using simd::bad_lanes;
 //early with emit disabled, so the seed Sprev is computed by the exact
 //same code path — results are bitwise identical for any partition.
 template <bool MIN>
+FW_TARGET_AVX2
 static void minmax_blocked_range(const double* FW_RESTRICT x,
                                  double* FW_RESTRICT dst,
                                  size_t n, size_t w,
@@ -524,6 +530,7 @@ using simd::scan_bwd_add;
 /// Blocked rolling sum/mean (skip_nan = false).  mean_div selects division
 /// by the window length; the warmup region is handled scalar so that
 /// min_periods < window still emits partial results.
+FW_TARGET_AVX2
 static void sum_blocked_range(const double* FW_RESTRICT x,
                               double* FW_RESTRICT dst,
                               size_t n, size_t w, bool mean_div,
@@ -665,6 +672,7 @@ static void run_sum_blocked(const double* FW_RESTRICT x,
 /// Blocked rolling variance/std (skip_nan = false): two additive streams
 /// (x and x²); var = (Σx² − (Σx)²/w) / (w − ddof), clamped at 0; std takes
 /// _mm256_sqrt_pd in the same write pass.
+FW_TARGET_AVX2
 static void var_blocked_range(const double* FW_RESTRICT x,
                               double* FW_RESTRICT dst,
                               size_t n, size_t w,
@@ -850,7 +858,7 @@ void rolling_min(const double* src, double* dst, size_t n, size_t window,
                  int n_threads) {
     (void)n_threads;
 #if FW_SIMD
-    if (window >= 16 && n >= window) {
+    if (cpu_has_avx2() && window >= 16 && n >= window) {
         run_minmax_blocked<true>(src, dst, n, window, n_threads);
         return;
     }
@@ -892,7 +900,7 @@ void rolling_max(const double* src, double* dst, size_t n, size_t window,
                  int n_threads) {
     (void)n_threads;
 #if FW_SIMD
-    if (window >= 16 && n >= window) {
+    if (cpu_has_avx2() && window >= 16 && n >= window) {
         run_minmax_blocked<false>(src, dst, n, window, n_threads);
         return;
     }

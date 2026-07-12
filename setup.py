@@ -3,7 +3,10 @@ fastwindow — build script (pybind11 extension).
 
 Mirrors the pattern used by quitefastmst for OpenMP + platform detection.
 Compile flags: -O3 -march=native -ffast-math -fopenmp -std=c++17
-AVX2 paths live inside #ifdef __AVX2__ guards; scalar fallback always present.
+AVX2 kernels are compiled on every x86-64 target (per-function target
+attributes when the baseline ISA lacks AVX2) and selected at runtime via
+CPUID, so portable wheels (FASTWINDOW_PORTABLE=1) run the fast paths too;
+the scalar fallback always remains for non-AVX2 CPUs.
 """
 
 import glob
@@ -70,6 +73,7 @@ class FastwindowBuildExt(build_ext):
 
 
 src_files = [
+    os.path.join("src", "cpu_features.cpp"),
     os.path.join("src", "rolling_basic.cpp"),
     os.path.join("src", "rolling_regression.cpp"),
     os.path.join("src", "rolling_regression_multi.cpp"),

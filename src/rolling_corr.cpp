@@ -226,6 +226,7 @@ using simd::scan_fwd_add;
 using simd::scan_bwd_add;
 using simd::bad_lanes;
 
+FW_TARGET_AVX2
 static void run_corr_blocked(
         const double* FW_RESTRICT x, const double* FW_RESTRICT y,
         double* FW_RESTRICT dst_corr, double* FW_RESTRICT dst_cov,
@@ -466,7 +467,8 @@ void rolling_corr(
     }
 
 #if FW_SIMD
-    if (!skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_corr_blocked(x, y, dst_corr, dst_cov, n, window, min_periods,
                          /*cov_ddof1=*/true);
         return;
@@ -505,7 +507,8 @@ void rolling_cov(
     }
 
 #if FW_SIMD
-    if (!skip_nan && window >= 16 && min_periods <= (int)window) {
+    if (cpu_has_avx2() && !skip_nan && window >= 16 &&
+        min_periods <= (int)window) {
         run_corr_blocked(x, y, nullptr, dst, n, window, min_periods, ddof1);
         return;
     }

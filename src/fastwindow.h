@@ -18,16 +18,31 @@
   #define FW_RESTRICT __restrict__
 #endif
 
-//AVX2 paths are enabled only when the compiler reports AVX2 support and the
-//user has not forced the scalar fallback with -DFASTWINDOW_NO_AVX2 (CI flag).
-#if defined(__AVX2__) && !defined(FASTWINDOW_NO_AVX2)
+//AVX2 kernels are compiled on any x86-64 target and selected at RUNTIME via
+//cpu_has_avx2(): when the baseline ISA lacks AVX2 (portable wheels, CRAN
+//builds) the intrinsics are enabled per-function through FW_TARGET_AVX2
+//target attributes (MSVC compiles intrinsics without any flag, so the
+//attribute is empty there).  -DFASTWINDOW_NO_AVX2 forces the scalar
+//fallback at compile time (CI flag).
+#if !defined(FASTWINDOW_NO_AVX2) && \
+    (defined(__x86_64__) || defined(_M_X64) || defined(__AVX2__))
   #include <immintrin.h>
   #define FW_SIMD 1
+  #if defined(__AVX2__) || defined(_MSC_VER)
+    #define FW_TARGET_AVX2
+  #else
+    #define FW_TARGET_AVX2 __attribute__((target("avx2,fma")))
+  #endif
 #else
   #define FW_SIMD 0
 #endif
 
 namespace fastwindow {
+
+/// True iff the CPU and OS support the AVX2 kernel paths (AVX2 + FMA
+/// instruction sets and OS-saved YMM state).  Result is cached; always
+/// false in FASTWINDOW_NO_AVX2 / non-x86-64 builds.
+bool cpu_has_avx2() noexcept;
 
 //NaN-safe finite check
 //std::isfinite / std::isnan are optimised away by -ffast-math / -ffinite-math-only.

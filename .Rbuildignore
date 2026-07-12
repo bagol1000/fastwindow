@@ -1,7 +1,6 @@
 ^\.github$
 ^\.gitignore$
 ^\.Rbuildignore$
-^\.claude$
 ^\.devel$
 ^\.pytest_cache$
 ^build$

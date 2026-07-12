@@ -4,7 +4,8 @@ Comparison against pandas, bottleneck and polars on identical inputs.
 
 **Setup:** n = 10,000,000 random N(0,1) doubles, window = 252.
 Median of 5 runs, including output-array allocation.
-Versions: pandas 3.0.3, bottleneck 1.6.0, polars 1.41.2, numpy 1.26.4.
+Versions: fastwindow 0.2.0, pandas 3.0.3, bottleneck 1.6.0,
+polars 1.41.2, numpy 1.26.4.
 
 > Benchmarks run on an Intel Core Ultra 9 185H (laptop), single thread
 > unless noted.  Laptop frequency scaling makes absolute numbers vary
@@ -35,25 +36,39 @@ print("mean", t(lambda: fw.rolling_mean(x, w)),
 
 ## Basic statistics (10M elements, window 252)
 
-| Operation | n | window | fastwindow | pandas | bottleneck | polars | speedup vs pandas |
-|---|---|---|---|---|---|---|---|
-| mean | 10M | 252 | **31.0 ms** | 192.7 ms | 30.0 ms | 53.2 ms | 6.2× |
-| std  | 10M | 252 | **37.6 ms** | 277.8 ms | 89.8 ms | 116.7 ms | 7.4× |
-| min  | 10M | 252 | **33.2 ms** | 287.3 ms | 103.0 ms | 135.3 ms | 8.7× |
-| max  | 10M | 252 | **31.8 ms** | 290.1 ms | 102.4 ms | 130.2 ms | 9.1× |
+One consistent run (fastwindow 0.2.0, runtime AVX2 dispatch active):
 
-fastwindow matches bottleneck on `mean` and is 2.4–3.2× faster on
+| Operation | fastwindow | pandas | bottleneck | polars | speedup vs pandas |
+|---|---|---|---|---|---|
+| mean | **45 ms** | 225 ms | 47 ms | 96 ms | 5.0× |
+| std  | **39 ms** | 317 ms | 126 ms | 122 ms | 8.1× |
+| min  | **35 ms** | 316 ms | 105 ms | 144 ms | 9.0× |
+| max  | **38 ms** | 311 ms | 103 ms | 139 ms | 8.3× |
+| skew | **91 ms** | 278 ms | n/a | 256 ms | 3.1× |
+| kurt | **68 ms** | 293 ms | n/a | n/a | 4.3× |
+
+fastwindow matches bottleneck on `mean` and is 2.7–4.1× faster on
 `std`/`min`/`max` (blocked van Herk AVX2 kernels vs bottleneck's scalar
-loops).
+loops), and 2.4–4.1× faster than polars across the board.
 
-## Regression and correlation matrix (1M elements, window 252)
+**Honest counterpoint:** polars wins on exact rolling *median*
+(~635 ms vs ~1,506 ms for `rolling_quantile(q=0.5, exact=True)` on the
+same input) — if the rolling median of a huge series is your bottleneck,
+use polars for that call.
 
-bottleneck has no equivalent for these operations.
+## Regression, correlation, rank statistics (1M elements, window 252)
 
-| Operation | n | window | fastwindow | pandas | bottleneck | speedup |
-|---|---|---|---|---|---|---|
-| simple regression (slope+intercept+R²) | 1M | 252 | **7.7 ms** | ~28,300 ms (`.apply` + polyfit, extrapolated from 20k) | N/A — no equivalent | ~3,700× |
-| correlation matrix p=10 (4 threads) | 1M | 252 | **254.5 ms** | ~3,860 ms (`.rolling().corr()`, extrapolated from 100k) | N/A — no equivalent | ~15× |
+The operations nothing else provides fast — bottleneck has none of
+these; polars has only the pairwise correlation:
+
+| Operation | fastwindow | pandas | polars | speedup |
+|---|---|---|---|---|
+| pairwise correlation | **3.9 ms** | 88 ms | 86 ms | 22× |
+| simple regression (slope+intercept+R²) | **13.6 ms** | ~28,300 ms (`.apply` + polyfit, extrapolated from 20k) | no equivalent | ~2,000× |
+| multiple regression k=3 (coef+R²+σ) | **55.6 ms** | ~8 s (`.apply`, extrapolated) | no equivalent | ~150× |
+| correlation matrix p=10 (4 threads) | **464 ms** | ~3,860 ms (extrapolated from 100k) | no equivalent | ~8× |
+| Spearman rank correlation (100k) | **148 ms** | no equivalent | no equivalent | — |
+| z-score (10M) | **115 ms** | two rolling calls | two rolling calls | — |
 
 ## Tuned-path timings (optimization pass)
 

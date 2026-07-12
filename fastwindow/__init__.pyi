@@ -1,4 +1,10 @@
-"""Type stubs and reference documentation for the fastwindow public API."""
+"""Type stubs and reference documentation for the fastwindow public API.
+
+All functions also accept pandas objects (soft dependency): Series in →
+Series out with the index preserved; DataFrame in → DataFrame out for the
+2-D functions; dict-returning functions return dicts of Series.  The
+declared ndarray return types below describe the plain-array path.
+"""
 
 from typing import overload
 

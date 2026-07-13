@@ -20,6 +20,9 @@ rolling_max_matrix(
 \item{min_periods}{minimum number of observations; defaults to
 \code{window}.}
 
+\item{skip_nan}{if \code{TRUE}, missing values are excluded from the
+window instead of propagating to the output.}
+
 \item{n_threads}{OpenMP thread count; \code{0L} uses all available.}
 }
 \value{

@@ -649,6 +649,8 @@ rolling_sum_matrix <- function(X, window, min_periods = window,
 #' Column-wise rolling minimum
 #'
 #' @inheritParams rolling_mean_matrix
+#' @param skip_nan if \code{TRUE}, missing values are excluded from the
+#'   window instead of propagating to the output.
 #'
 #' @return A numeric matrix of the same dimensions as \code{X}.
 #'
@@ -669,6 +671,8 @@ rolling_min_matrix <- function(X, window, min_periods = window,
 #' Column-wise rolling maximum
 #'
 #' @inheritParams rolling_mean_matrix
+#' @param skip_nan if \code{TRUE}, missing values are excluded from the
+#'   window instead of propagating to the output.
 #'
 #' @return A numeric matrix of the same dimensions as \code{X}.
 #'

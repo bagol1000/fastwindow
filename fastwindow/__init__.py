@@ -11,7 +11,7 @@ Series in → Series out with the index preserved, DataFrame in →
 DataFrame out for the 2-D functions.  Plain arrays stay plain arrays.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 import sys as _sys
 
@@ -49,6 +49,12 @@ def _copy_meta(fn, core_fn):
     return fn
 
 
+def _matching_pandas_index(left, right):
+    """Reject ambiguous positional operations on differently indexed objects."""
+    if left is not None and right is not None and not left.index.equals(right.index):
+        raise ValueError("pandas inputs must have identical indexes")
+
+
 def _wrap_1d(core_fn):
     """1-D array in → same-shape array out; Series in → Series out."""
     def fn(x, *args, **kwargs):
@@ -64,6 +70,7 @@ def _wrap_xy(core_fn):
     def fn(x, y, *args, **kwargs):
         xarr, xbox = _unwrap(x)
         yarr, ybox = _unwrap(y)
+        _matching_pandas_index(xbox, ybox)
         box = xbox if xbox is not None else ybox
         res = core_fn(xarr, yarr, *args, **kwargs)
         if box is None:
@@ -115,6 +122,7 @@ def _wrap_multiple_regression(core_fn):
     def fn(y, X, *args, **kwargs):
         yarr, ybox = _unwrap(y)
         Xarr, Xbox = _unwrap(X)
+        _matching_pandas_index(ybox, Xbox)
         res = core_fn(yarr, Xarr, *args, **kwargs)
         box = ybox if ybox is not None else Xbox
         if box is None:
@@ -141,6 +149,7 @@ rolling_sum      = _wrap_1d(_core.rolling_sum)
 rolling_min      = _wrap_1d(_core.rolling_min)
 rolling_max      = _wrap_1d(_core.rolling_max)
 rolling_quantile = _wrap_1d(_core.rolling_quantile)
+expanding_quantile_approx = _wrap_1d(_core.expanding_quantile_approx)
 rolling_skew     = _wrap_1d(_core.rolling_skew)
 rolling_kurt     = _wrap_1d(_core.rolling_kurt)
 rolling_zscore   = _wrap_1d(_core.rolling_zscore)
@@ -167,6 +176,7 @@ rolling_min_2d  = _wrap_2d(_core.rolling_min_2d)
 rolling_max_2d  = _wrap_2d(_core.rolling_max_2d)
 
 rolling_corr_matrix = _wrap_2d_plain(_core.rolling_corr_matrix)
+rolling_corr_pairs  = _wrap_2d_plain(_core.rolling_corr_pairs)
 
 __all__ = [
     "rolling_mean",
@@ -181,7 +191,9 @@ __all__ = [
     "rolling_corr",
     "rolling_cov",
     "rolling_corr_matrix",
+    "rolling_corr_pairs",
     "rolling_quantile",
+    "expanding_quantile_approx",
     "rolling_skew",
     "rolling_kurt",
     "rolling_zscore",

@@ -102,3 +102,11 @@ test_that("rolling_min_matrix/max_matrix pass min_periods and skip_nan", {
   expect_equal(out[, 2],
                rolling_min(-x, 8, min_periods = 2, skip_nan = TRUE))
 })
+
+
+test_that("integer arguments are validated without truncation", {
+  expect_error(rolling_mean(1:5, window = 2.5), "integer scalar")
+  expect_error(rolling_mean(1:5, window = 2, n_threads = -1), "n_threads")
+  expect_error(rolling_mean(1:5, window = 2, n_threads = 1.5), "n_threads")
+  expect_error(set_num_threads(2.5), "integer scalar")
+})

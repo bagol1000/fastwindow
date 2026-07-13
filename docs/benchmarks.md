@@ -4,7 +4,7 @@ Comparison against pandas, bottleneck and polars on identical inputs.
 
 **Setup:** n = 10,000,000 random N(0,1) doubles, window = 252.
 Median of 5 runs, including output-array allocation.
-Versions: fastwindow 0.2.0, pandas 3.0.3, bottleneck 1.6.0,
+Recorded with fastwindow 0.2.0, pandas 3.0.3, bottleneck 1.6.0,
 polars 1.41.2, numpy 1.26.4.
 
 > Benchmarks run on an Intel Core Ultra 9 185H (laptop), single thread
@@ -14,12 +14,14 @@ polars 1.41.2, numpy 1.26.4.
 ## Reproduce
 
 ```python
-import fastwindow as fw, pandas as pd, bottleneck as bn
-import numpy as np, time, statistics
+import fastwindow as fw, pandas as pd, bottleneck as bn, polars as pl
+import numpy as np, platform, statistics, time
 
 n, w = 10_000_000, 252
-x = np.random.randn(n)
+rng = np.random.default_rng(20260713)
+x = rng.standard_normal(n)
 s = pd.Series(x)
+ps = pl.Series(x)
 
 def t(fn, reps=5):
     fn()
@@ -28,15 +30,28 @@ def t(fn, reps=5):
         t0 = time.perf_counter(); fn(); ts.append((time.perf_counter() - t0) * 1000)
     return statistics.median(ts)
 
-print("mean", t(lambda: fw.rolling_mean(x, w)),
-              t(lambda: s.rolling(w).mean()),
-              t(lambda: bn.move_mean(x, w)))
-# ... same pattern for std / min / max
+print("platform", platform.platform(), platform.processor())
+print("versions", fw.__version__, np.__version__, pd.__version__, bn.__version__, pl.__version__)
+for name, fast, pandas_fn, bottleneck_fn, polars_fn in [
+    ("mean", lambda: fw.rolling_mean(x, w),
+     lambda: s.rolling(w).mean(), lambda: bn.move_mean(x, w),
+     lambda: ps.rolling_mean(w)),
+    ("std", lambda: fw.rolling_std(x, w),
+     lambda: s.rolling(w).std(), lambda: bn.move_std(x, w, ddof=1),
+     lambda: ps.rolling_std(w, ddof=1)),
+    ("min", lambda: fw.rolling_min(x, w),
+     lambda: s.rolling(w).min(), lambda: bn.move_min(x, w),
+     lambda: ps.rolling_min(w)),
+    ("max", lambda: fw.rolling_max(x, w),
+     lambda: s.rolling(w).max(), lambda: bn.move_max(x, w),
+     lambda: ps.rolling_max(w)),
+]:
+    print(name, t(fast), t(pandas_fn), t(bottleneck_fn), t(polars_fn))
 ```
 
 ## Basic statistics (10M elements, window 252)
 
-One consistent run (fastwindow 0.2.0, runtime AVX2 dispatch active):
+Historical 0.2.0 run (runtime AVX2 dispatch active; rerun the script for current 0.3.0 results):
 
 | Operation | fastwindow | pandas | bottleneck | polars | speedup vs pandas |
 |---|---|---|---|---|---|
@@ -100,6 +115,13 @@ Other algorithm upgrades in the same pass:
   the previous serial kernel (the five independent sum chains already
   pipelined well — measured, not assumed), but accuracy improved to
   machine precision and the periodic recompute is no longer needed.
+
+## Memory behavior in 0.3.0
+
+`rolling_zscore` uses no n-sized temporary on its default fused path and one
+on the explicit multithreaded path. `rolling_corr_matrix` writes directly to
+the final cube with at most one n-element pair buffer per worker. Use
+`rolling_corr_pairs` to avoid allocating the full `(n, p, p)` output.
 
 ## Kernel-only timings
 

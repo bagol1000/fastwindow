@@ -72,7 +72,8 @@ function returns a NaN-padded array of the same length as the input
 (the first `window - 1` positions are NaN unless you lower
 `min_periods`).
 
-**pandas objects work everywhere** (pandas is optional, not required):
+**pandas objects work everywhere** (pandas is optional, not required). Pairwise operations require identical indexes; inputs are never silently aligned
+or combined positionally across different indexes:
 
 ```python
 import pandas as pd
@@ -109,15 +110,15 @@ fw.rolling_kurt(x, window=100)     # excess kurtosis, matches pandas .kurt()
 fw.rolling_zscore(x, window=100)   # (x - rolling mean) / rolling std
 ```
 
-### NaN handling
+### Non-finite values
 
 ```python
 x = np.array([1., np.nan, 3., 4., 5.])
 
-# default: any NaN in the window propagates to the output
+# default: any non-finite value (NaN or +/-Inf) propagates to the output
 fw.rolling_mean(x, window=3)
 
-# skip_nan=True ignores NaNs; min_periods controls the minimum valid count
+# skip_nan=True ignores non-finite values; min_periods controls the minimum valid count
 fw.rolling_mean(x, window=3, skip_nan=True, min_periods=2)
 fw.rolling_min(x, window=3, skip_nan=True, min_periods=1)   # pandas semantics
 ```
@@ -128,14 +129,13 @@ fw.rolling_min(x, window=3, skip_nan=True, min_periods=1)   # pandas semantics
 x = np.random.randn(1000)
 
 fw.rolling_quantile(x, window=50, q=0.5)               # exact rolling median
-fw.rolling_quantile(x, window=50, q=0.9, exact=False)  # fast P² streaming approximation
+fw.expanding_quantile_approx(x, q=0.9)  # fast P-squared stream estimate
 ```
 
-With `exact=True` (the default), the result is the exact quantile of the
-current rolling window and matches NumPy/R type-7 interpolation.  With
-`exact=False`, P² is an O(1) streaming estimator over observations seen so
-far; it is useful for stationary series but is not an exact rolling-window
-quantile on drifting distributions.
+The rolling result is exact and matches NumPy/R type-7 interpolation.
+`expanding_quantile_approx` is a separate O(1) P-squared estimator over all
+finite observations seen so far. The legacy `exact=False` switch is deprecated
+because that result is expanding rather than rolling.
 
 ### Correlation and covariance
 
@@ -152,6 +152,7 @@ corr, cov = fw.rolling_corr(x, y, window=60, return_cov=True)
 # pairwise correlation matrix across columns -> shape (n, p, p)
 X = np.random.randn(1000, 4)
 cubes = fw.rolling_corr_matrix(X, window=60)
+pairs = fw.rolling_corr_pairs(X, window=60)    # compact (n, p*(p-1)/2)
 cubes[-1]                                        # 4x4 matrix at the last step
 ```
 
@@ -201,11 +202,14 @@ fw.rolling_mean_2d(X, window=100)     # also _std / _sum / _min / _max
 ```python
 fw.rolling_mean(x, window=252, n_threads=4)   # OpenMP over blocks, 1-D too
 buf = np.empty_like(x)
-fw.rolling_mean(x, window=252, out=buf)       # reuse output buffer
+fw.rolling_mean(x, window=252, out=buf)       # reuse non-overlapping output buffer
 
 fw.set_num_threads(8)     # OpenMP default used when n_threads=0
 fw.has_avx2()             # True if the AVX2 kernels are active on this CPU
 ```
+
+`out=` must not overlap any input view; partial overlap is rejected.
+`rolling_zscore` uses a fused, allocation-free default path.
 
 `n_threads=` on the 1-D kernels splits the series into blocks with
 bitwise-identical results for any thread count; combined with `out=`,
@@ -225,6 +229,7 @@ rolling_mean(x, window = 50, min_periods = 1)
 rolling_skew(x, window = 50)
 rolling_zscore(x, window = 50)
 rolling_quantile(x, window = 50, q = 0.9)
+expanding_quantile_approx(x, q = 0.9)
 
 rolling_corr(x, y, window = 60)
 rolling_spearman(x, y, window = 60)
@@ -234,6 +239,7 @@ fit$slope
 
 X <- matrix(rnorm(10000 * 8), ncol = 8)
 rolling_mean_matrix(X, window = 100)
+rolling_corr_pairs(X, window = 100)
 ```
 
 ## Documentation

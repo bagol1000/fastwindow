@@ -11,12 +11,24 @@ the scalar fallback always remains for non-AVX2 CPUs.
 
 import glob
 import os
+import shutil
 import sys
 
 import setuptools
 from setuptools.command.build_ext import build_ext
+from setuptools.command.build_py import build_py
 import pybind11
 import numpy as np
+
+
+class FastwindowBuildPy(build_py):
+    """Remove stale non-package directories from incremental wheel builds."""
+
+    def run(self):
+        stale_tests = os.path.join(self.build_lib, "tests")
+        if os.path.isdir(stale_tests):
+            shutil.rmtree(stale_tests)
+        super().run()
 
 
 class FastwindowBuildExt(build_ext):
@@ -106,7 +118,8 @@ ext_kwargs = dict(
 setuptools.setup(
     packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
     package_data={"fastwindow": ["py.typed", "*.pyi"]},
-    cmdclass={"build_ext": FastwindowBuildExt},
+    license_files=["LICENSE.md"],
+    cmdclass={"build_ext": FastwindowBuildExt, "build_py": FastwindowBuildPy},
     ext_modules=[
         setuptools.Extension("fastwindow._core", **ext_kwargs)
     ],

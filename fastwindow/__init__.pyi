@@ -1,22 +1,34 @@
 """Type stubs and reference documentation for the fastwindow public API.
 
-All functions also accept pandas objects (soft dependency): Series in →
-Series out with the index preserved; DataFrame in → DataFrame out for the
-2-D functions; dict-returning functions return dicts of Series.  The
-declared ndarray return types below describe the plain-array path.
+Functions accept pandas objects through structural protocols, without a hard
+pandas dependency. Series and DataFrame metadata are preserved; paired pandas
+inputs must have identical indexes.
 """
 
-from typing import overload
+from typing import Any, Protocol, TypeVar, overload
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 __version__: str
 
+class _SeriesLike(Protocol):
+    index: Any
+    name: Any
+    def to_numpy(self, *args: Any, **kwargs: Any) -> NDArray[np.float64]: ...
+
+class _FrameLike(Protocol):
+    index: Any
+    columns: Any
+    def to_numpy(self, *args: Any, **kwargs: Any) -> NDArray[np.float64]: ...
+
+_SeriesT = TypeVar("_SeriesT", bound=_SeriesLike)
+_FrameT = TypeVar("_FrameT", bound=_FrameLike)
+
 def rolling_mean(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ..., out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling mean over a sliding window.
 
@@ -30,7 +42,7 @@ def rolling_mean(
         Minimum number of valid observations required to emit a value.
         Defaults to ``window``.
     skip_nan : bool, default False
-        If True, NaN values are excluded from the window instead of
+        If True, non-finite values are excluded from the window instead of
         propagating to the output.
 
     Returns
@@ -47,10 +59,10 @@ def rolling_mean(
     ...
 
 def rolling_var(
-    x: ArrayLike, window: int, min_periods: int = ..., ddof: int = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., ddof: int = ...,
     skip_nan: bool = ..., n_threads: int = ...,
     out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling variance (sliding Welford algorithm).
 
@@ -71,10 +83,10 @@ def rolling_var(
     ...
 
 def rolling_std(
-    x: ArrayLike, window: int, min_periods: int = ..., ddof: int = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., ddof: int = ...,
     skip_nan: bool = ..., n_threads: int = ...,
     out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling standard deviation; square root of :func:`rolling_var`.
 
@@ -98,9 +110,9 @@ def rolling_std(
     ...
 
 def rolling_sum(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ..., out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling sum with compensated (Kahan) recomputation for stability.
 
@@ -118,14 +130,14 @@ def rolling_sum(
     ...
 
 def rolling_min(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ..., out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling minimum.
 
-    By default any NaN inside the window yields NaN for that position;
-    ``skip_nan=True`` ignores NaN values instead (pandas semantics) and
+    By default any non-finite value inside the window yields NaN for that position;
+    ``skip_nan=True`` ignores non-finite values instead (pandas semantics) and
     ``min_periods`` counts only the valid observations.  AVX2 builds use
     a blocked van Herk algorithm; otherwise a monotonic deque (O(n)
     total either way).
@@ -145,9 +157,9 @@ def rolling_min(
     ...
 
 def rolling_max(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ..., out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling maximum; mirror of :func:`rolling_min`.
 
@@ -305,10 +317,21 @@ def rolling_corr_matrix(
     """
     ...
 
-def rolling_skew(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
-    out: NDArray[np.float64] | None = ...
+def rolling_corr_pairs(
+    X: ArrayLike, window: int, min_periods: int = ..., n_threads: int = ...
 ) -> NDArray[np.float64]:
+    """
+    Rolling correlations for upper-triangle column pairs.
+
+    Returns an ``(n, p*(p-1)/2)`` array in pair order ``(0,1)``,
+    ``(0,2)``, ..., avoiding the memory cost of a full correlation cube.
+    """
+    ...
+
+def rolling_skew(
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    out: NDArray[np.float64] | None = ...
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling skewness, bias-corrected.
 
@@ -333,9 +356,9 @@ def rolling_skew(
     ...
 
 def rolling_kurt(
-    x: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling excess kurtosis, bias-corrected.
 
@@ -357,14 +380,14 @@ def rolling_kurt(
     ...
 
 def rolling_zscore(
-    x: ArrayLike, window: int, min_periods: int = ..., ddof: int = ...,
+    x: ArrayLike | _SeriesT, window: int, min_periods: int = ..., ddof: int = ...,
     skip_nan: bool = ..., n_threads: int = ...,
     out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling z-score: ``(x - rolling mean) / rolling std``.
 
-    NaN where the input is NaN, the window does not emit (see
+    NaN where the input is non-finite, the window does not emit (see
     ``min_periods``), or the window standard deviation is zero.
 
     Parameters
@@ -382,9 +405,9 @@ def rolling_zscore(
     ...
 
 def rolling_quantile(
-    x: ArrayLike, window: int, q: float = ..., min_periods: int = ...,
+    x: ArrayLike | _SeriesT, window: int, q: float = ..., min_periods: int = ...,
     exact: bool = ..., out: NDArray[np.float64] | None = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _SeriesT:
     """
     Rolling quantile.
 
@@ -398,9 +421,8 @@ def rolling_quantile(
     exact : bool, default True
         True uses an exact two-heap order-statistic structure (O(log window)
         amortised per step; matches ``numpy.percentile``); any window size.
-        False uses the P-squared streaming approximation (Jain & Chlamtac,
-        1985) over observations seen so far, so it is O(1) per step but is
-        not an exact rolling-window quantile on drifting distributions.
+        False retains the deprecated P-squared stream estimator for backward
+        compatibility. Use :func:`expanding_quantile_approx` instead.
 
     Returns
     -------
@@ -435,9 +457,20 @@ def rolling_spearman(
     """
     ...
 
-def expanding_mean(x: ArrayLike, min_periods: int = ...) -> NDArray[np.float64]:
+def expanding_quantile_approx(
+    x: ArrayLike, q: float = ..., min_periods: int = ...
+) -> NDArray[np.float64]:
     """
-    Expanding (growing-window) mean; NaN values are skipped.
+    P-squared approximate quantile over all finite observations seen so far.
+
+    This is an expanding statistic. Non-finite values are skipped and the
+    default ``min_periods`` is 5.
+    """
+    ...
+
+def expanding_mean(x: ArrayLike | _SeriesT, min_periods: int = ...) -> NDArray[np.float64] | _SeriesT:
+    """
+    Expanding (growing-window) mean; non-finite values are skipped.
 
     Parameters
     ----------
@@ -451,8 +484,8 @@ def expanding_mean(x: ArrayLike, min_periods: int = ...) -> NDArray[np.float64]:
     ...
 
 def expanding_var(
-    x: ArrayLike, min_periods: int = ..., ddof: int = ...
-) -> NDArray[np.float64]:
+    x: ArrayLike | _SeriesT, min_periods: int = ..., ddof: int = ...
+) -> NDArray[np.float64] | _SeriesT:
     """
     Expanding variance (Welford).
 
@@ -469,8 +502,8 @@ def expanding_var(
     ...
 
 def expanding_std(
-    x: ArrayLike, min_periods: int = ..., ddof: int = ...
-) -> NDArray[np.float64]:
+    x: ArrayLike | _SeriesT, min_periods: int = ..., ddof: int = ...
+) -> NDArray[np.float64] | _SeriesT:
     """
     Expanding standard deviation.
 
@@ -486,7 +519,7 @@ def expanding_std(
     """
     ...
 
-def expanding_sum(x: ArrayLike, min_periods: int = ...) -> NDArray[np.float64]:
+def expanding_sum(x: ArrayLike | _SeriesT, min_periods: int = ...) -> NDArray[np.float64] | _SeriesT:
     """
     Expanding sum (Kahan-compensated).
 
@@ -523,8 +556,8 @@ def expanding_regression(
     ...
 
 def rolling_mean_2d(
-    X: ArrayLike, window: int, min_periods: int = ..., n_threads: int = ...
-) -> NDArray[np.float64]:
+    X: ArrayLike | _FrameT, window: int, min_periods: int = ..., n_threads: int = ...
+) -> NDArray[np.float64] | _FrameT:
     """
     Column-wise rolling mean over an (n, p) array (OpenMP over columns).
 
@@ -542,9 +575,9 @@ def rolling_mean_2d(
     ...
 
 def rolling_std_2d(
-    X: ArrayLike, window: int, min_periods: int = ..., ddof: int = ...,
+    X: ArrayLike | _FrameT, window: int, min_periods: int = ..., ddof: int = ...,
     n_threads: int = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _FrameT:
     """
     Column-wise rolling standard deviation (OpenMP over columns).
 
@@ -563,8 +596,8 @@ def rolling_std_2d(
     ...
 
 def rolling_sum_2d(
-    X: ArrayLike, window: int, min_periods: int = ..., n_threads: int = ...
-) -> NDArray[np.float64]:
+    X: ArrayLike | _FrameT, window: int, min_periods: int = ..., n_threads: int = ...
+) -> NDArray[np.float64] | _FrameT:
     """
     Column-wise rolling sum (OpenMP over columns).
 
@@ -582,9 +615,9 @@ def rolling_sum_2d(
     ...
 
 def rolling_min_2d(
-    X: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    X: ArrayLike | _FrameT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _FrameT:
     """
     Column-wise rolling minimum (OpenMP over columns).
 
@@ -603,9 +636,9 @@ def rolling_min_2d(
     ...
 
 def rolling_max_2d(
-    X: ArrayLike, window: int, min_periods: int = ..., skip_nan: bool = ...,
+    X: ArrayLike | _FrameT, window: int, min_periods: int = ..., skip_nan: bool = ...,
     n_threads: int = ...
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | _FrameT:
     """
     Column-wise rolling maximum (OpenMP over columns).
 

@@ -29,6 +29,22 @@ jobs:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
+  build-sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Python source distribution
+        run: |
+          pip install build
+          python -m build --sdist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-sdist
+          path: dist/*.tar.gz
+
   build-r-package:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +60,7 @@ jobs:
           path: fastroll_*.tar.gz
 
   release:
-    needs: [build-wheels, build-r-package]
+    needs: [build-wheels, build-sdist, build-r-package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -58,4 +74,26 @@ jobs:
         with:
           files: |
             artifacts/*.whl
+            artifacts/fastwindow-*.tar.gz
             artifacts/fastroll_*.tar.gz
+
+  publish-pypi:
+    needs: [build-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fastwindow
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-sdist
+          path: dist
+      - name: Publish with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1

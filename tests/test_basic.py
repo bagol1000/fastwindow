@@ -454,3 +454,31 @@ class TestMinMaxMinPeriodsSkipNan:
                                             skip_nan=True)
         assert_allclose_nan(out[:, 0], exp0, label=f"{op}_2d col0")
         assert_allclose_nan(out[:, 1], exp1, label=f"{op}_2d col1")
+
+
+# Hypothesis is optional for local development and required by CI.
+import importlib.util
+
+if importlib.util.find_spec("hypothesis") is not None:
+    from hypothesis import given, strategies as st
+
+    @given(
+        st.lists(
+            st.floats(min_value=-1e6, max_value=1e6,
+                      allow_nan=False, allow_infinity=False),
+            min_size=1, max_size=100),
+        st.integers(min_value=1, max_value=20),
+    )
+    def test_rolling_mean_matches_brute_force(values, requested_window):
+        x = np.asarray(values, dtype=np.float64)
+        window = min(requested_window, len(x))
+        actual = fw.rolling_mean(x, window)
+        expected = np.full(len(x), np.nan)
+        for i in range(window - 1, len(x)):
+            expected[i] = np.mean(x[i - window + 1:i + 1])
+        np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-10,
+                                   equal_nan=True)
+else:
+    @pytest.mark.skip(reason="hypothesis is not installed")
+    def test_rolling_mean_matches_brute_force():
+        pass

@@ -2,12 +2,23 @@
 #All inputs are validated here so users get clean R error messages
 #before any .Call into compiled code.
 
+.check_integer_scalar <- function(value, name, minimum = 0L) {
+    if (length(value) != 1L || !is.numeric(value) || !is.finite(value) ||
+        value != trunc(value) || value < minimum || value > .Machine$integer.max) {
+        stop(sprintf("`%s` must be an integer scalar between %d and %d",
+                     name, minimum, .Machine$integer.max))
+    }
+    invisible(TRUE)
+}
+
+.check_threads <- function(n_threads) {
+    .check_integer_scalar(n_threads, "n_threads", 0L)
+}
+
 .check_basic_args <- function(x, window, min_periods) {
     if (!is.numeric(x)) stop("`x` must be a numeric vector")
-    if (length(window) != 1L || !is.finite(window) || window < 1)
-        stop("`window` must be a positive integer scalar")
-    if (length(min_periods) != 1L || !is.finite(min_periods) || min_periods < 0)
-        stop("`min_periods` must be a non-negative integer scalar")
+    .check_integer_scalar(window, "window", 1L)
+    .check_integer_scalar(min_periods, "min_periods", 0L)
     invisible(TRUE)
 }
 
@@ -36,6 +47,7 @@
 rolling_mean <- function(x, window, min_periods = window, skip_nan = FALSE,
                          n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     cpp_rolling_mean(as.double(x), as.integer(window),
                      as.integer(min_periods), isTRUE(skip_nan),
                      as.integer(n_threads))
@@ -60,6 +72,7 @@ rolling_mean <- function(x, window, min_periods = window, skip_nan = FALSE,
 rolling_std <- function(x, window, min_periods = window,
                         ddof = 1L, skip_nan = FALSE, n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     if (!ddof %in% c(0L, 1L)) stop("`ddof` must be 0 or 1")
     cpp_rolling_std(as.double(x), as.integer(window),
                     as.integer(min_periods), as.integer(ddof),
@@ -83,6 +96,7 @@ rolling_std <- function(x, window, min_periods = window,
 rolling_var <- function(x, window, min_periods = window,
                         ddof = 1L, skip_nan = FALSE, n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     if (!ddof %in% c(0L, 1L)) stop("`ddof` must be 0 or 1")
     cpp_rolling_var(as.double(x), as.integer(window),
                     as.integer(min_periods), as.integer(ddof),
@@ -106,6 +120,7 @@ rolling_var <- function(x, window, min_periods = window,
 rolling_sum <- function(x, window, min_periods = window, skip_nan = FALSE,
                         n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     cpp_rolling_sum(as.double(x), as.integer(window),
                     as.integer(min_periods), isTRUE(skip_nan),
                     as.integer(n_threads))
@@ -142,6 +157,7 @@ rolling_sum <- function(x, window, min_periods = window, skip_nan = FALSE,
 rolling_min <- function(x, window, min_periods = window, skip_nan = FALSE,
                         n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     cpp_rolling_min(as.double(x), as.integer(window),
                     as.integer(min_periods), isTRUE(skip_nan),
                     as.integer(n_threads))
@@ -167,6 +183,7 @@ rolling_min <- function(x, window, min_periods = window, skip_nan = FALSE,
 rolling_max <- function(x, window, min_periods = window, skip_nan = FALSE,
                         n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     cpp_rolling_max(as.double(x), as.integer(window),
                     as.integer(min_periods), isTRUE(skip_nan),
                     as.integer(n_threads))
@@ -333,6 +350,28 @@ rolling_cov <- function(x, y, window, min_periods = window,
                     isTRUE(skip_nan))
 }
 
+#' Rolling correlations for column pairs
+#'
+#' @description Computes each upper-triangle column-pair correlation
+#'   without allocating a full p-by-p cube. Pair order is (1,2), (1,3), ... .
+#' @param X numeric matrix with 2 to 50 columns.
+#' @param window window length, a positive integer.
+#' @param min_periods minimum number of observations; defaults to window.
+#' @param n_threads OpenMP threads; 0 uses the library default.
+#' @return Numeric matrix with nrow(X) rows and p*(p-1)/2 columns.
+#' @export
+rolling_corr_pairs <- function(X, window, min_periods = window,
+                               n_threads = 0L) {
+    if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
+    p <- ncol(X)
+    if (p < 2 || p > 50) stop("`X` must have between 2 and 50 columns")
+    .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
+    storage.mode(X) <- "double"
+    cpp_rolling_corr_pairs(X, as.integer(window), as.integer(min_periods),
+                           as.integer(n_threads))
+}
+
 #' Rolling correlation matrix
 #'
 #' @description Computes the rolling Pearson correlation matrix across the
@@ -363,8 +402,7 @@ rolling_corr_matrix <- function(X, window, min_periods = window,
     p <- ncol(X)
     if (p < 2 || p > 50) stop("`X` must have between 2 and 50 columns")
     .check_basic_args(X[, 1], window, min_periods)
-    if (length(n_threads) != 1L || !is.finite(n_threads) || n_threads < 0)
-        stop("`n_threads` must be a non-negative integer scalar")
+    .check_threads(n_threads)
     storage.mode(X) <- "double"
     cpp_rolling_corr_matrix(X, as.integer(window),
                             as.integer(min_periods), as.integer(n_threads))
@@ -375,11 +413,9 @@ rolling_corr_matrix <- function(X, window, min_periods = window,
 #' @description Computes a rolling quantile.  With \code{exact = TRUE}
 #'   (default) an exact two-heap order-statistic structure is used
 #'   (O(log window) amortised per step) and the result matches
-#'   \code{quantile(type = 7)} / \code{numpy.percentile}.  With
-#'   \code{exact = FALSE} the faster P-squared streaming approximation
-#'   (Jain & Chlamtac, 1985) is used — O(1) per step, but it estimates the
-#'   quantile of all observations seen so far rather than of the window,
-#'   so it is only suitable for stationary series.
+#'   \code{quantile(type = 7)} / \code{numpy.percentile}.  The legacy
+#'   \code{exact = FALSE} stream estimator is deprecated; use
+#'   \code{expanding_quantile_approx()} instead.
 #'
 #' @inheritParams rolling_mean
 #' @param q the quantile, strictly between 0 and 1.
@@ -394,6 +430,9 @@ rolling_corr_matrix <- function(X, window, min_periods = window,
 #' @export
 rolling_quantile <- function(x, window, q = 0.5, min_periods = window,
                              exact = TRUE) {
+    if (!isTRUE(exact))
+        warning("`exact = FALSE` is deprecated; use `expanding_quantile_approx()`",
+                call. = FALSE)
     .check_basic_args(x, window, min_periods)
     if (length(q) != 1L || !is.finite(q) || q <= 0 || q >= 1)
         stop("`q` must be strictly between 0 and 1")
@@ -476,10 +515,28 @@ rolling_kurt <- function(x, window, min_periods = window,
 rolling_zscore <- function(x, window, min_periods = window, ddof = 1L,
                            skip_nan = FALSE, n_threads = 0L) {
     .check_basic_args(x, window, min_periods)
+    .check_threads(n_threads)
     if (!ddof %in% c(0L, 1L)) stop("`ddof` must be 0 or 1")
     cpp_rolling_zscore(as.double(x), as.integer(window),
                        as.integer(min_periods), as.integer(ddof),
                        isTRUE(skip_nan), as.integer(n_threads))
+}
+
+#' Approximate expanding quantile
+#'
+#' @description P-squared streaming estimate of a quantile over all finite
+#'   observations seen so far. This is an expanding, not rolling, statistic.
+#' @param x numeric vector. Non-finite values are skipped.
+#' @param q target quantile strictly between 0 and 1.
+#' @param min_periods minimum number of finite observations; defaults to 5.
+#' @return Numeric vector of the same length as \code{x}.
+#' @export
+expanding_quantile_approx <- function(x, q = 0.5, min_periods = 5L) {
+    .check_basic_args(x, 1L, min_periods)
+    if (length(q) != 1L || !is.finite(q) || q <= 0 || q >= 1)
+        stop("`q` must be strictly between 0 and 1")
+    cpp_expanding_quantile_approx(as.double(x), as.double(q),
+                                  as.integer(min_periods))
 }
 
 #' Expanding mean
@@ -598,6 +655,7 @@ rolling_mean_matrix <- function(X, window, min_periods = window,
                                 n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
     .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
     storage.mode(X) <- "double"
     cpp_rolling_mean_matrix(X, as.integer(window),
                             as.integer(min_periods), as.integer(n_threads))
@@ -620,6 +678,7 @@ rolling_std_matrix <- function(X, window, min_periods = window,
                                ddof = 1L, n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
     .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
     if (!ddof %in% c(0L, 1L)) stop("`ddof` must be 0 or 1")
     storage.mode(X) <- "double"
     cpp_rolling_std_matrix(X, as.integer(window), as.integer(min_periods),
@@ -641,6 +700,7 @@ rolling_sum_matrix <- function(X, window, min_periods = window,
                                n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
     .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
     storage.mode(X) <- "double"
     cpp_rolling_sum_matrix(X, as.integer(window),
                            as.integer(min_periods), as.integer(n_threads))
@@ -663,6 +723,7 @@ rolling_min_matrix <- function(X, window, min_periods = window,
                                skip_nan = FALSE, n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
     .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
     storage.mode(X) <- "double"
     cpp_rolling_min_matrix(X, as.integer(window), as.integer(min_periods),
                            isTRUE(skip_nan), as.integer(n_threads))
@@ -685,6 +746,7 @@ rolling_max_matrix <- function(X, window, min_periods = window,
                                skip_nan = FALSE, n_threads = 0L) {
     if (!is.matrix(X) || !is.numeric(X)) stop("`X` must be a numeric matrix")
     .check_basic_args(X[, 1], window, min_periods)
+    .check_threads(n_threads)
     storage.mode(X) <- "double"
     cpp_rolling_max_matrix(X, as.integer(window), as.integer(min_periods),
                            isTRUE(skip_nan), as.integer(n_threads))
@@ -736,8 +798,7 @@ rolling_spearman <- function(x, y, window, min_periods = window) {
 #' @seealso \code{\link{get_num_threads}}
 #' @export
 set_num_threads <- function(n) {
-    if (length(n) != 1L || !is.finite(n) || n < 1)
-        stop("`n` must be a positive integer scalar")
+    .check_integer_scalar(n, "n", 1L)
     invisible(cpp_set_num_threads(as.integer(n)))
 }
 

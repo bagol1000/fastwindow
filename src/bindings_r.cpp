@@ -146,18 +146,26 @@ NumericVector cpp_rolling_cov(NumericVector x, NumericVector y, int window,
 }
 
 // [[Rcpp::export(rng = false)]]
+NumericMatrix cpp_rolling_corr_pairs(NumericMatrix X, int window,
+                                     int min_periods, int n_threads) {
+    size_t n = X.nrow();
+    int p = X.ncol();
+    int n_pairs = p * (p - 1) / 2;
+    NumericMatrix out(n, n_pairs);
+    fastwindow::rolling_corr_matrix(REAL(X), REAL(out), n, p,
+                                    (size_t)window, min_periods, n_threads);
+    return out;
+}
+
+// [[Rcpp::export(rng = false)]]
 NumericVector cpp_rolling_corr_matrix(NumericMatrix X, int window,
                                       int min_periods, int n_threads) {
     size_t n = X.nrow();
     int p    = X.ncol();
     NumericVector out(n * static_cast<size_t>(p) * p);
-    size_t n_pairs = static_cast<size_t>(p) * (p - 1) / 2;
-    std::vector<double> tri(n_pairs * n);
-    fastwindow::rolling_corr_matrix(REAL(X), tri.data(),
-                                    n, p, (size_t)window, min_periods,
-                                    n_threads);
-    fastwindow::corr_matrix_expand(tri.data(), REAL(out), n, p,
-                                   /*r_layout=*/true, n_threads);
+    fastwindow::rolling_corr_matrix_full(
+        REAL(X), REAL(out), n, p, (size_t)window, min_periods,
+        /*r_layout=*/true, n_threads);
     out.attr("dim") = IntegerVector::create((int)n, p, p);
     return out;
 }
@@ -200,6 +208,15 @@ NumericVector cpp_rolling_quantile(NumericVector x, int window, double q,
     NumericVector out(n);
     fastwindow::rolling_quantile(REAL(x), REAL(out), n, (size_t)window, q,
                                  min_periods, exact);
+    return out;
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector cpp_expanding_quantile_approx(NumericVector x, double q,
+                                            int min_periods) {
+    size_t n = x.size();
+    NumericVector out(n);
+    fastwindow::expanding_quantile_approx(REAL(x), REAL(out), n, q, min_periods);
     return out;
 }
 

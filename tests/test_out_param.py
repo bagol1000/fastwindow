@@ -77,3 +77,9 @@ class TestOneDThreads:
             a = fn(x, w, n_threads=1)
             b = fn(x, w, n_threads=4)
             assert nan_equal(a, b), f"{fn.__name__} w={w}"
+
+
+def test_partially_overlapping_out_is_rejected():
+    storage = np.arange(12.0)
+    with pytest.raises(ValueError, match="overlap"):
+        fw.rolling_sum(storage[:-1], 3, out=storage[1:])

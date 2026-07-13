@@ -130,18 +130,56 @@ void rolling_zscore(const double* src, double* dst, size_t n, size_t window,
         for (size_t i = 0; i < n; i++) dst[i] = DNAN;
         return;
     }
-    //Reuses the mean/std kernels (and their AVX2 / OpenMP paths); the
-    //combine pass is trivially memory-bound.
-    std::vector<double> mu(n), sd(n);
-    rolling_mean(src, mu.data(), n, window, min_periods, skip_nan, n_threads);
-    rolling_std(src, sd.data(), n, window, min_periods, ddof1, skip_nan,
-                n_threads);
+
+    if (n_threads > 1) {
+        // The parallel blocked kernels still save one full temporary array:
+        // std is written to dst and replaced in-place during combination.
+        std::vector<double> mu(n);
+        rolling_mean(src, mu.data(), n, window, min_periods, skip_nan, n_threads);
+        rolling_std(src, dst, n, window, min_periods, ddof1, skip_nan, n_threads);
+        for (size_t i = 0; i < n; i++) {
+            double xv = src[i], m = mu[i], s = dst[i];
+            dst[i] = (fw_isfinite(xv) && fw_isfinite(m) && fw_isfinite(s) &&
+                      s > 0.0) ? (xv - m) / s : DNAN;
+        }
+        return;
+    }
+
+    // Fused scalar path: one rolling state, no n-sized temporaries.
+    RunningStats<double> rs(window);
+    size_t invalid = 0, reinit_ctr = 0;
     for (size_t i = 0; i < n; i++) {
-        double xv = src[i], m = mu[i], s = sd[i];
-        dst[i] = (fw_isfinite(xv) && fw_isfinite(m) && fw_isfinite(s) &&
-                  s > 0.0)
-                     ? (xv - m) / s
-                     : DNAN;
+        if (i >= window) {
+            double old = src[i - window];
+            if (fw_isfinite(old)) rs.remove(old);
+            else                  invalid--;
+        }
+        double current = src[i];
+        if (fw_isfinite(current)) rs.grow(current);
+        else                      invalid++;
+
+        if (++reinit_ctr >= 4096 && i + 1 >= window) {
+            reinit_ctr = 0;
+            rs.reset();
+            invalid = 0;
+            const size_t start = i + 1 - window;
+            for (size_t j = start; j <= i; j++) {
+                if (fw_isfinite(src[j])) rs.grow(src[j]);
+                else                     invalid++;
+            }
+        }
+
+        const size_t total = std::min(i + 1, window);
+        const bool emit = skip_nan
+            ? (static_cast<int>(rs.n) >= min_periods)
+            : (invalid == 0 && static_cast<int>(total) >= min_periods);
+        double value = DNAN;
+        if (emit && fw_isfinite(current)) {
+            const double var = rs.variance(ddof1);
+            if (fw_isfinite(var) && var > 0.0)
+                value = (current - rs.mean) / std::sqrt(var);
+        }
+        dst[i] = value;
     }
 }
 

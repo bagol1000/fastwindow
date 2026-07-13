@@ -144,3 +144,17 @@ class TestOutParam:
         out = fw.rolling_mean(series, window=10, out=buf)
         assert isinstance(out, pd.Series)
         assert np.shares_memory(out.to_numpy(), buf)
+
+
+def test_mismatched_series_indexes_are_rejected():
+    left = pd.Series([1.0, 2.0, 3.0], index=["a", "b", "c"])
+    right = pd.Series([1.0, 2.0, 3.0], index=["b", "c", "d"])
+    with pytest.raises(ValueError, match="identical indexes"):
+        fw.rolling_corr(left, right, 2)
+
+
+def test_mismatched_regression_indexes_are_rejected():
+    y = pd.Series([1.0, 2.0, 3.0], index=["a", "b", "c"])
+    X = pd.DataFrame({"x": [1.0, 2.0, 3.0]}, index=["b", "c", "d"])
+    with pytest.raises(ValueError, match="identical indexes"):
+        fw.rolling_multiple_regression(y, X, 2)

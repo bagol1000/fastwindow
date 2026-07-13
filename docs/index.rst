@@ -28,14 +28,15 @@ Quick start
    x = np.random.randn(1_000_000)
    fw.rolling_mean(x, window=252)
    fw.rolling_regression(np.cumsum(x), window=252)["slope"]
+   fw.expanding_quantile_approx(x, q=0.95)
 
-   # pandas objects work everywhere (index preserved)
+   # pandas objects preserve metadata; paired indexes must match
    import pandas as pd
    fw.rolling_zscore(pd.Series(x), window=252)
 
 Every function returns a NaN-padded array of the same length as the
 input; ``min_periods`` emits values earlier, ``skip_nan`` switches to
-pandas-style NaN handling where available.
+pandas-style handling where available. NaN and infinities are treated as non-finite.
 
 .. toctree::
    :maxdepth: 1

@@ -5,6 +5,32 @@ packages are documented here.  The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-07-13
+
+### Added
+
+- Public `rolling_corr_pairs` output for memory-efficient upper-triangle correlations.
+- `expanding_quantile_approx`, the explicitly named P-squared stream estimator.
+- Artifact, property-based, ASan and UBSan checks in CI; PyPI Trusted Publishing.
+
+### Changed
+
+- `rolling_corr_matrix` no longer allocates a full pair-major triangle before expansion.
+- `rolling_zscore` uses no n-sized temporary in its default fused path and one in the parallel path.
+- pandas pair operations require identical indexes instead of silently combining positions.
+- R integer arguments are validated before conversion; fractional and out-of-range values fail.
+- Python distribution metadata includes the canonical MIT text only.
+
+### Fixed
+
+- Reject partially overlapping NumPy `out` and input views, which could corrupt results.
+- Exclude development metadata from the R source package and stale `tests` from wheels.
+- Align the Spearman complexity description and document all non-finite handling.
+
+### Deprecated
+
+- `rolling_quantile(exact=False)`; use `expanding_quantile_approx` for the same stream estimator.
+
 ## [0.2.0] — 2026-07-12
 
 ### Added

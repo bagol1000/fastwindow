@@ -58,3 +58,14 @@ test_that("rolling_spearman matches cor(method='spearman')", {
                  tolerance = 1e-10)
   }
 })
+
+
+test_that("rolling_corr_pairs matches the upper triangle", {
+  set.seed(13)
+  X <- matrix(rnorm(400), ncol = 4)
+  pairs <- rolling_corr_pairs(X, 15)
+  cube <- rolling_corr_matrix(X, 15)
+  expected <- cbind(cube[, 1, 2], cube[, 1, 3], cube[, 1, 4],
+                    cube[, 2, 3], cube[, 2, 4], cube[, 3, 4])
+  expect_equal(pairs, expected)
+})

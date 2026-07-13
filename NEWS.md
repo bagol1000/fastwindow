@@ -1,3 +1,10 @@
+# fastroll 0.3.0
+
+- Added `rolling_corr_pairs()` and `expanding_quantile_approx()`.
+- Reduced peak memory for correlation matrices and rolling z-scores.
+- Fixed integer argument validation and package-source exclusions.
+- Deprecated `rolling_quantile(..., exact = FALSE)` in favor of the explicitly expanding API.
+
 # fastroll 0.2.0
 
 - The AVX2 kernels are now compiled into every x86-64 build and selected

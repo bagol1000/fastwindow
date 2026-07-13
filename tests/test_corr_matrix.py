@@ -123,3 +123,15 @@ class TestCorrMatrixErrors:
         np.testing.assert_array_equal(
             np.nan_to_num(out_c, nan=-999.0),
             np.nan_to_num(out_f, nan=-999.0))
+
+
+def test_public_pair_output_matches_full_cube():
+    rng = np.random.default_rng(91)
+    X = rng.standard_normal((120, 4))
+    pairs = fw.rolling_corr_pairs(X, 15)
+    cube = fw.rolling_corr_matrix(X, 15)
+    expected = np.column_stack([
+        cube[:, 0, 1], cube[:, 0, 2], cube[:, 0, 3],
+        cube[:, 1, 2], cube[:, 1, 3], cube[:, 2, 3],
+    ])
+    np.testing.assert_allclose(pairs, expected, equal_nan=True)

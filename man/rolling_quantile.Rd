@@ -26,11 +26,9 @@ A numeric vector of the same length as \code{x}.
 Computes a rolling quantile.  With \code{exact = TRUE}
   (default) an exact two-heap order-statistic structure is used
   (O(log window) amortised per step) and the result matches
-  \code{quantile(type = 7)} / \code{numpy.percentile}.  With
-  \code{exact = FALSE} the faster P-squared streaming approximation
-  (Jain & Chlamtac, 1985) is used — O(1) per step, but it estimates the
-  quantile of all observations seen so far rather than of the window,
-  so it is only suitable for stationary series.
+  \code{quantile(type = 7)} / \code{numpy.percentile}.  The legacy
+  \code{exact = FALSE} stream estimator is deprecated; use
+  \code{expanding_quantile_approx()} instead.
 }
 \examples{
 rolling_quantile(rnorm(100), window = 20, q = 0.5)

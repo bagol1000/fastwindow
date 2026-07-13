@@ -6,6 +6,9 @@
 \alias{fastroll-package}
 \title{fastroll: Fast Rolling Window Statistics}
 \description{
+Non-finite values (NA, NaN and infinities) are treated uniformly.
+}
+\details{
 High-performance rolling window statistics backed by a shared C++17 core.
 }
 \seealso{

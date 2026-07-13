@@ -16,7 +16,7 @@ test_that("P2 approximation stays within 5% of exact", {
   set.seed(7)
   x <- rnorm(5000) + 10
   w <- 200
-  approx <- rolling_quantile(x, w, q = 0.5, exact = FALSE)
+  approx <- suppressWarnings(rolling_quantile(x, w, q = 0.5, exact = FALSE))
   exact  <- rolling_quantile(x, w, q = 0.5, exact = TRUE)
   idx <- 1000:5000
   rel <- abs(approx[idx] - exact[idx]) / abs(exact[idx])
@@ -31,4 +31,15 @@ test_that("invalid q is rejected and large exact windows work", {
   out <- rolling_quantile(x, 600, q = 0.5, exact = TRUE)
   expect_equal(out[1500], unname(quantile(x[901:1500], 0.5, type = 7)),
                tolerance = 1e-10)
+})
+
+
+test_that("expanding_quantile_approx exposes the P2 stream estimator", {
+  set.seed(9)
+  x <- rnorm(500)
+  legacy <- suppressWarnings(rolling_quantile(
+    x, 50, q = 0.4, min_periods = 50, exact = FALSE))
+  current <- expanding_quantile_approx(x, q = 0.4, min_periods = 50)
+  expect_equal(current, legacy)
+  expect_warning(rolling_quantile(x, 50, exact = FALSE), "deprecated")
 })

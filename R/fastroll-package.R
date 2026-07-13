@@ -1,5 +1,7 @@
 #' fastroll: Fast Rolling Window Statistics
 #'
+#' Non-finite values (NA, NaN and infinities) are treated uniformly.
+#'
 #' High-performance rolling window statistics backed by a shared C++17 core.
 #'
 #' @useDynLib fastroll, .registration = TRUE

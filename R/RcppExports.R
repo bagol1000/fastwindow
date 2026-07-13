@@ -45,6 +45,10 @@ cpp_rolling_cov <- function(x, y, window, min_periods, ddof, skip_nan) {
     .Call(`_fastroll_cpp_rolling_cov`, x, y, window, min_periods, ddof, skip_nan)
 }
 
+cpp_rolling_corr_pairs <- function(X, window, min_periods, n_threads) {
+    .Call(`_fastroll_cpp_rolling_corr_pairs`, X, window, min_periods, n_threads)
+}
+
 cpp_rolling_corr_matrix <- function(X, window, min_periods, n_threads) {
     .Call(`_fastroll_cpp_rolling_corr_matrix`, X, window, min_periods, n_threads)
 }
@@ -63,6 +67,10 @@ cpp_rolling_zscore <- function(x, window, min_periods, ddof, skip_nan, n_threads
 
 cpp_rolling_quantile <- function(x, window, q, min_periods, exact) {
     .Call(`_fastroll_cpp_rolling_quantile`, x, window, q, min_periods, exact)
+}
+
+cpp_expanding_quantile_approx <- function(x, q, min_periods) {
+    .Call(`_fastroll_cpp_expanding_quantile_approx`, x, q, min_periods)
 }
 
 cpp_expanding_mean <- function(x, min_periods) {

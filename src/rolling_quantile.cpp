@@ -250,4 +250,17 @@ void rolling_quantile(
     }
 }
 
+void expanding_quantile_approx(const double* src, double* dst, size_t n,
+                               double q, int min_periods) {
+    P2State p2(q);
+    size_t valid = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (fw_isfinite(src[i])) {
+            p2.add(src[i]);
+            valid++;
+        }
+        dst[i] = (static_cast<int>(valid) >= min_periods) ? p2.value() : DNAN;
+    }
+}
+
 } //namespace fastwindow

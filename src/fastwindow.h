@@ -371,6 +371,11 @@ void rolling_corr_matrix(
     const double* X, double* dst,
     size_t n, int p, size_t window, int min_periods, int n_threads);
 
+// Direct full-cube output with at most one n-element temporary per worker.
+void rolling_corr_matrix_full(
+    const double* X, double* out, size_t n, int p, size_t window,
+    int min_periods, bool r_layout, int n_threads);
+
 /// Expand the pair-major triangle into full symmetric matrices with unit
 /// diagonal.  r_layout=false → C-order (n,p,p): out[t·p² + i·p + j];
 /// r_layout=true → R column-major dim c(n,p,p): out[t + i·n + j·n·p].
@@ -430,6 +435,10 @@ void rolling_zscore(const double* src, double* dst, size_t n, size_t window,
 void rolling_quantile(
     const double* src, double* dst,
     size_t n, size_t window, double q, int min_periods, bool exact);
+
+// P-squared estimate over all finite observations seen so far.
+void expanding_quantile_approx(const double* src, double* dst, size_t n,
+                               double q, int min_periods);
 
 //Expanding windows
 

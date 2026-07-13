@@ -53,6 +53,63 @@ void rolling_corr_matrix(
     }
 }
 
+void rolling_corr_matrix_full(
+        const double* X, double* out, size_t n, int p, size_t window,
+        int min_periods, bool r_layout, int n_threads) {
+    if (n == 0 || window == 0 || p < 2 || p > FW_MAX_CORR_COLS) return;
+
+    const int n_pairs = p * (p - 1) / 2;
+    std::vector<int> pi(n_pairs), pj(n_pairs);
+    for (int i = 0, k = 0; i < p - 1; i++)
+        for (int j = i + 1; j < p; j++, k++) {
+            pi[k] = i;
+            pj[k] = j;
+        }
+
+    const int nt = resolve_threads(n_threads);
+    (void)nt;
+    const size_t pp = static_cast<size_t>(p) * p;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) num_threads(nt)
+#endif
+    for (int d = 0; d < p; d++) {
+        if (r_layout) {
+            double* diag = out + static_cast<size_t>(d) * n * p
+                               + static_cast<size_t>(d) * n;
+            for (size_t t = 0; t < n; t++) diag[t] = 1.0;
+        } else {
+            for (size_t t = 0; t < n; t++) out[t * pp + d * p + d] = 1.0;
+        }
+    }
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(dynamic, 4) num_threads(nt)
+#endif
+    for (int pair = 0; pair < n_pairs; pair++) {
+        const int i = pi[pair], j = pj[pair];
+        if (r_layout) {
+            double* upper = out + static_cast<size_t>(j) * n * p
+                                + static_cast<size_t>(i) * n;
+            double* lower = out + static_cast<size_t>(i) * n * p
+                                + static_cast<size_t>(j) * n;
+            rolling_corr(X + static_cast<size_t>(i) * n,
+                         X + static_cast<size_t>(j) * n, upper, nullptr,
+                         n, window, min_periods, false);
+            std::copy(upper, upper + n, lower);
+        } else {
+            std::vector<double> values(n);
+            rolling_corr(X + static_cast<size_t>(i) * n,
+                         X + static_cast<size_t>(j) * n, values.data(), nullptr,
+                         n, window, min_periods, false);
+            for (size_t t = 0; t < n; t++) {
+                out[t * pp + i * p + j] = values[t];
+                out[t * pp + j * p + i] = values[t];
+            }
+        }
+    }
+}
+
 void corr_matrix_expand(
         const double* tri, double* out,
         size_t n, int p, bool r_layout, int n_threads) {

@@ -164,6 +164,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_rolling_corr_pairs
+NumericMatrix cpp_rolling_corr_pairs(NumericMatrix X, int window, int min_periods, int n_threads);
+RcppExport SEXP _fastroll_cpp_rolling_corr_pairs(SEXP XSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type window(windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_rolling_corr_pairs(X, window, min_periods, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_rolling_corr_matrix
 NumericVector cpp_rolling_corr_matrix(NumericMatrix X, int window, int min_periods, int n_threads);
 RcppExport SEXP _fastroll_cpp_rolling_corr_matrix(SEXP XSEXP, SEXP windowSEXP, SEXP min_periodsSEXP, SEXP n_threadsSEXP) {
@@ -229,6 +242,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
     Rcpp::traits::input_parameter< bool >::type exact(exactSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_rolling_quantile(x, window, q, min_periods, exact));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_expanding_quantile_approx
+NumericVector cpp_expanding_quantile_approx(NumericVector x, double q, int min_periods);
+RcppExport SEXP _fastroll_cpp_expanding_quantile_approx(SEXP xSEXP, SEXP qSEXP, SEXP min_periodsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< int >::type min_periods(min_periodsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_expanding_quantile_approx(x, q, min_periods));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -410,11 +435,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastroll_cpp_rolling_multiple_regression", (DL_FUNC) &_fastroll_cpp_rolling_multiple_regression, 4},
     {"_fastroll_cpp_rolling_corr", (DL_FUNC) &_fastroll_cpp_rolling_corr, 6},
     {"_fastroll_cpp_rolling_cov", (DL_FUNC) &_fastroll_cpp_rolling_cov, 6},
+    {"_fastroll_cpp_rolling_corr_pairs", (DL_FUNC) &_fastroll_cpp_rolling_corr_pairs, 4},
     {"_fastroll_cpp_rolling_corr_matrix", (DL_FUNC) &_fastroll_cpp_rolling_corr_matrix, 4},
     {"_fastroll_cpp_rolling_skew", (DL_FUNC) &_fastroll_cpp_rolling_skew, 4},
     {"_fastroll_cpp_rolling_kurt", (DL_FUNC) &_fastroll_cpp_rolling_kurt, 4},
     {"_fastroll_cpp_rolling_zscore", (DL_FUNC) &_fastroll_cpp_rolling_zscore, 6},
     {"_fastroll_cpp_rolling_quantile", (DL_FUNC) &_fastroll_cpp_rolling_quantile, 5},
+    {"_fastroll_cpp_expanding_quantile_approx", (DL_FUNC) &_fastroll_cpp_expanding_quantile_approx, 3},
     {"_fastroll_cpp_expanding_mean", (DL_FUNC) &_fastroll_cpp_expanding_mean, 2},
     {"_fastroll_cpp_expanding_var", (DL_FUNC) &_fastroll_cpp_expanding_var, 3},
     {"_fastroll_cpp_expanding_std", (DL_FUNC) &_fastroll_cpp_expanding_std, 3},

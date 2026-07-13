@@ -43,6 +43,7 @@ class TestExactQuantile:
         assert out[6] == pytest.approx(6.0)
 
 
+@pytest.mark.filterwarnings(r"ignore:rolling_quantile\(exact=False\) is deprecated")
 class TestP2Quantile:
     @pytest.mark.parametrize("q", [0.25, 0.5, 0.75])
     def test_p2_vs_exact_within_5pct(self, q):
@@ -123,3 +124,20 @@ class TestQuantileErrors:
             else:
                 exp = np.percentile(win, 40)
                 assert out[i] == pytest.approx(exp, abs=1e-10), f"i={i}"
+
+
+class TestExpandingQuantileApprox:
+    def test_matches_legacy_stream_estimator(self):
+        rng = np.random.default_rng(22)
+        x = rng.standard_normal(500)
+        with pytest.warns(DeprecationWarning):
+            legacy = fw.rolling_quantile(
+                x, window=50, q=0.3, min_periods=50, exact=False)
+        current = fw.expanding_quantile_approx(x, q=0.3, min_periods=50)
+        np.testing.assert_allclose(current, legacy, equal_nan=True)
+
+    def test_skips_non_finite_values(self):
+        x = np.array([1.0, np.nan, 2.0, np.inf, 3.0, 4.0, 5.0])
+        out = fw.expanding_quantile_approx(x, q=0.5, min_periods=3)
+        assert np.isnan(out[:4]).all()
+        assert np.isfinite(out[4:]).all()

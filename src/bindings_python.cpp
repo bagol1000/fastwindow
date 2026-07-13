@@ -48,9 +48,16 @@ static py::array_t<double> resolve_out(const py::object& out, py::ssize_t n,
         throw std::invalid_argument(
             "out must be a writable C-contiguous float64 array with the "
             "same length as the input");
-    if (arr.data() == src1 || (src2 && arr.data() == src2))
+    const auto overlaps = [n](const void* lhs, const void* rhs) {
+        if (!lhs || !rhs || n == 0) return false;
+        const auto a = reinterpret_cast<uintptr_t>(lhs);
+        const auto b = reinterpret_cast<uintptr_t>(rhs);
+        const auto bytes = static_cast<uintptr_t>(n) * sizeof(double);
+        return a < b + bytes && b < a + bytes;
+    };
+    if (overlaps(arr.data(), src1) || overlaps(arr.data(), src2))
         throw std::invalid_argument(
-            "out must not be the same array as the input");
+            "out must not overlap an input array");
     return arr.cast<py::array_t<double>>();
 }
 
@@ -381,12 +388,8 @@ static py::array_t<double> py_rolling_corr_matrix(
     int mp = resolve_min_periods(min_periods, window);
     {
         py::gil_scoped_release release;   //long-running, OpenMP inside
-        size_t n_pairs = static_cast<size_t>(p) * (p - 1) / 2;
-        std::vector<double> tri(n_pairs * n);
-        fastwindow::rolling_corr_matrix(
-            Xsrc.data(), tri.data(), n, p, window, mp, n_threads);
-        fastwindow::corr_matrix_expand(
-            tri.data(), out.mutable_data(), n, p,
+        fastwindow::rolling_corr_matrix_full(
+            Xsrc.data(), out.mutable_data(), n, p, window, mp,
             /*r_layout=*/false, n_threads);
     }
     return out;
@@ -479,6 +482,12 @@ static py::array_t<double> py_rolling_quantile(
         const py::array& x, size_t window, double q,
         int min_periods, bool exact, const py::object& out) {
     check_window(window);
+    if (!exact) {
+        if (PyErr_WarnEx(PyExc_DeprecationWarning,
+            "rolling_quantile(exact=False) is deprecated; use "
+            "expanding_quantile_approx() for the P-squared stream estimator", 1) < 0)
+            throw py::error_already_set();
+    }
     if (!(q > 0.0 && q < 1.0))
         throw std::invalid_argument("q must be strictly between 0 and 1");
     auto src = ensure_contiguous(x);
@@ -489,6 +498,22 @@ static py::array_t<double> py_rolling_quantile(
         py::gil_scoped_release release;
         fastwindow::rolling_quantile(
             src.data(), dst.mutable_data(), n, window, q, mp, exact);
+    }
+    return dst;
+}
+
+static py::array_t<double> py_expanding_quantile_approx(
+        const py::array& x, double q, int min_periods) {
+    if (!(q > 0.0 && q < 1.0))
+        throw std::invalid_argument("q must be strictly between 0 and 1");
+    auto src = ensure_contiguous(x);
+    size_t n = static_cast<size_t>(src.shape(0));
+    auto dst = make_output(static_cast<py::ssize_t>(n));
+    int mp = resolve_min_periods_default(min_periods, 5);
+    {
+        py::gil_scoped_release release;
+        fastwindow::expanding_quantile_approx(
+            src.data(), dst.mutable_data(), n, q, mp);
     }
     return dst;
 }
@@ -796,6 +821,13 @@ PYBIND11_MODULE(_core, m) {
           "Rolling correlation matrix across the columns of X. "
           "Returns an (n, p, p) symmetric array with unit diagonal.");
 
+    m.def("rolling_corr_pairs", &py_corr_matrix_pairs,
+          py::arg("X"), py::arg("window"),
+          py::arg("min_periods") = -1,
+          py::arg("n_threads") = 0,
+          "Rolling correlations for upper-triangle column pairs. "
+          "Returns an (n, p*(p-1)/2) array.");
+
     m.def("_corr_matrix_pairs", &py_corr_matrix_pairs,
           py::arg("X"), py::arg("window"),
           py::arg("min_periods") = -1,
@@ -838,6 +870,10 @@ PYBIND11_MODULE(_core, m) {
           "rolling window with lazy-deletion heaps; exact=False uses the "
           "faster P2 streaming approximation, which estimates the quantile "
           "of all observations seen so far, not of the window.");
+
+    m.def("expanding_quantile_approx", &py_expanding_quantile_approx,
+          py::arg("x"), py::arg("q") = 0.5, py::arg("min_periods") = -1,
+          "P-squared approximate quantile over the expanding stream.");
 
     m.def("expanding_mean", &py_expanding_mean,
           py::arg("x"), py::arg("min_periods") = 1,
@@ -886,7 +922,7 @@ PYBIND11_MODULE(_core, m) {
           py::arg("min_periods") = -1,
           py::arg("out")         = py::none(),
           "Rolling Spearman rank correlation (average ranks for ties). "
-          "O(window log window) per step — use small/moderate windows.");
+          "O(window) per step via linear passes over sorted window copies.");
 
     m.def("set_num_threads", &py_set_num_threads, py::arg("n"),
           "Set the default OpenMP thread count used when n_threads=0.");

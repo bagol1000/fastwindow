@@ -1,4 +1,4 @@
-# fastroll 0.2.0 (2026-07-12)
+# fastroll 0.2.0
 
 - The AVX2 kernels are now compiled into every x86-64 build and selected
   at runtime with a CPUID check, so a default `R CMD INSTALL` (portable

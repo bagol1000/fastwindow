@@ -15,7 +15,7 @@ OpenMP), two thin bindings: **Python** (`fastwindow`, pybind11) and
 import numpy as np, fastwindow as fw
 
 y = np.cumsum(np.random.randn(1_000_000))
-fit = fw.rolling_regression(y, window=252)     # 13 ms — pandas .apply: ~28 s
+fit = fw.rolling_regression(y, window=252)     # 12.61 ms in the current benchmark
 fit["slope"], fit["intercept"], fit["r2"]
 ```
 
@@ -25,33 +25,37 @@ fit["slope"], fit["intercept"], fit["r2"]
 For the statistics that have no built-in fast path — regression,
 correlation matrices, rank correlation — that means seconds to minutes
 on series where an O(1)-per-step streaming kernel needs milliseconds.
-bottleneck and polars solve this only for the simple moments.
+Bottleneck and Polars cover only part of this API surface.
 
-1M doubles, window 252, single thread
-([full results & methodology](docs/benchmarks.md)):
+Current 0.3.0 measurements on an Intel Core Ultra 9 185H
+([full results and reproducible methodology](docs/benchmarks.md)):
 
-| Operation | fastwindow | pandas | polars |
-|---|---|---|---|
-| pairwise correlation | **3.9 ms** | 88 ms | 86 ms |
-| simple regression (slope+intercept+R²) | **13.6 ms** | ~28 s (`.apply`) | no equivalent |
-| multiple regression k=3 | **55.6 ms** | ~8 s (`.apply`) | no equivalent |
-| correlation matrix p=10 (4 threads) | **464 ms** | ~3.9 s | no equivalent |
-| Spearman rank correlation (100k) | **148 ms** | no equivalent | no equivalent |
+| Operation | Dataset | fastwindow | Direct comparison |
+|---|---|---:|---:|
+| pairwise correlation | n=1M | **6.26 ms** | pandas 85.04 ms |
+| simple regression | n=1M | **12.61 ms** | no direct equivalent |
+| multiple regression k=3 | n=1M | **53.80 ms** | no direct equivalent |
+| Spearman correlation | n=100k | **148.79 ms** | no direct rolling equivalent |
+| full correlation cube p=10, 4 threads | n=200k | **80.69 ms** | 152.6 MiB output |
+| packed correlation pairs p=10, 4 threads | n=200k | **18.91 ms** | 68.7 MiB output |
 
-And the basics hold their own (10M doubles, window 252):
+Basic operations use 10M doubles and window 252:
 
-| Operation | fastwindow | pandas | bottleneck | polars |
-|---|---|---|---|---|
-| mean | **45 ms** | 225 ms | 47 ms | 96 ms |
-| std  | **39 ms** | 317 ms | 126 ms | 122 ms |
-| min  | **35 ms** | 316 ms | 105 ms | 144 ms |
-| skew | **91 ms** | 278 ms | n/a | 256 ms |
-| kurt | **68 ms** | 293 ms | n/a | n/a |
+| Operation | fastwindow | pandas | Bottleneck | Polars |
+|---|---:|---:|---:|---:|
+| mean | 24.30 ms | 123.39 ms | **24.02 ms** | 57.10 ms |
+| std | **26.11 ms** | 190.52 ms | 50.21 ms | 123.85 ms |
+| min | **16.62 ms** | 217.27 ms | 86.62 ms | 144.24 ms |
+| max | **16.28 ms** | 216.84 ms | 87.01 ms | 147.63 ms |
+| skew | **85.32 ms** | 216.64 ms | n/a | 242.12 ms |
+| kurt | **46.07 ms** | 197.99 ms | n/a | 201.80 ms |
+| z-score | **186.63 ms** | 345.73 ms | n/a | 208.06 ms |
+| exact median | 1303.44 ms | 3168.08 ms | **435.84 ms** | 654.74 ms |
 
-When *not* to use fastwindow: if you only need rolling mean/sum,
-bottleneck is just as fast; and polars beats us on exact rolling
-*median* of huge series.  Everything else here is either faster or
-doesn't exist elsewhere.
+The honest exceptions are visible in the table: Bottleneck ties fastwindow
+on mean and is 2.99x faster for exact median; Polars is 1.99x faster for
+that median. fastwindow provides the largest gains for min/max, correlation and operations without direct
+rolling equivalents.
 
 ## Install
 
@@ -212,9 +216,10 @@ fw.has_avx2()             # True if the AVX2 kernels are active on this CPU
 `rolling_zscore` uses a fused, allocation-free default path.
 
 `n_threads=` on the 1-D kernels splits the series into blocks with
-bitwise-identical results for any thread count; combined with `out=`,
-`rolling_mean` on 10M doubles drops to ~6 ms
-([details](docs/benchmarks.md)).
+bitwise-identical results for any thread count;
+`rolling_mean` on 10M doubles reaches 8.60 ms with four threads in the
+current measurement. Reusing `out=` controls allocation but did not improve
+the single-call median on this machine ([details](docs/benchmarks.md)).
 
 ### R
 

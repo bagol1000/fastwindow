@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 - `rolling_corr_matrix` no longer allocates a full pair-major triangle before expansion.
 - `rolling_zscore` uses no n-sized temporary in its default fused path and one in the parallel path.
+- Benchmarks were re-recorded for 0.3.0 with deterministic inputs and no extrapolated timings.
 - pandas pair operations require identical indexes instead of silently combining positions.
 - R integer arguments are validated before conversion; fractional and out-of-range values fail.
 - Python distribution metadata includes the canonical MIT text only.

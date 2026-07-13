@@ -64,6 +64,7 @@ jobs:
           python-version: "3.12"
       - name: Build with ASan and UBSan
         run: |
+          python -m pip install --upgrade pip setuptools wheel
           pip install pybind11 numpy pandas scipy pytest
           pip install --no-build-isolation -e .
       - name: Run sanitizer suite

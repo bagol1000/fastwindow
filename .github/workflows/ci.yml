@@ -65,13 +65,15 @@ jobs:
       - name: Build with ASan and UBSan
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install pybind11 numpy pandas scipy pytest
+          pip install pybind11 numpy pandas scipy pytest hypothesis
           pip install --no-build-isolation -e .
       - name: Run sanitizer suite
         env:
-          LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libasan.so.8
           ASAN_OPTIONS: detect_leaks=0
-        run: pytest tests -q
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          LD_PRELOAD="$(gcc -print-file-name=libasan.so):$(g++ -print-file-name=libstdc++.so)" \
+            pytest tests -q
 
   test-r:
     runs-on: ubuntu-latest
